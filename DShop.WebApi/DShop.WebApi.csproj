@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Api</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="ServiceStack.Text" />
+    <!-- McMaster.NETCore.Plugins 通过 DShop.Infrastructure 间接引用 -->
+    <PackageReference Include="System.CodeDom" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" />
+    <PackageReference Include="System.Security.Permissions" />
+    <PackageReference Include="System.IO.Ports" />
+    <PackageReference Include="System.Threading.AccessControl" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DShop.Infrastructure\DShop.Infrastructure.csproj" />
+    <ProjectReference Include="..\DShop.Models\DShop.Models.csproj" />
+    <ProjectReference Include="..\DShop.PluginShared\DShop.PluginShared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

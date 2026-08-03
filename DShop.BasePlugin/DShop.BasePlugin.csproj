@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DShop.Contracts\DShop.Contracts.csproj" />
+    <ProjectReference Include="..\DShop.Infrastructure\DShop.Infrastructure.csproj" />
+    <ProjectReference Include="..\DShop.Models\DShop.Models.csproj" />
+    <ProjectReference Include="..\DShop.PluginShared\DShop.PluginShared.csproj" />
+  </ItemGroup>
+
+  <Target Name="CopyToPlugins" AfterTargets="Build">
+    <ItemGroup>
+      <_PluginFiles Include="$(TargetDir)$(AssemblyName).dll" />
+      <_PluginFiles Include="$(TargetDir)DShop.Contracts.dll" />
+      <_PluginFiles Include="$(TargetDir)DShop.Infrastructure.dll" />
+      <_PluginFiles Include="$(TargetDir)DShop.Models.dll" />
+      <_PluginFiles Include="$(TargetDir)DShop.PluginShared.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_PluginFiles)" DestinationFolder="..\DShop.WebApi\bin\$(Configuration)\$(TargetFramework)\Plugins\" />
+  </Target>
+
+</Project>

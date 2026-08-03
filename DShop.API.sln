@@ -1,0 +1,61 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36203.30
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DShop.Models", "DShop.Models\DShop.Models.csproj", "{0133F5B8-C960-418A-BD73-9A8920536289}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DShop.WebApi", "DShop.WebApi\DShop.WebApi.csproj", "{E78C9FCF-0ECD-448A-9017-4006197900E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DShop.Infrastructure", "DShop.Infrastructure\DShop.Infrastructure.csproj", "{8CFE245B-530D-4904-83E1-5ED3F5136679}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DShop.Contracts", "DShop.Contracts\DShop.Contracts.csproj", "{B4A1C2D3-E4F5-6789-ABCD-EF0123456789}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DShop.BasePlugin", "DShop.BasePlugin\DShop.BasePlugin.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotReloadTest", "HotReloadTest\HotReloadTest.csproj", "{887794D8-55D3-03D8-8CBC-78A6ECBAF6DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DShop.PluginShared", "DShop.PluginShared\DShop.PluginShared.csproj", "{FDF92BA6-3E36-B944-17BD-D5F1079D722D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0133F5B8-C960-418A-BD73-9A8920536289}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0133F5B8-C960-418A-BD73-9A8920536289}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0133F5B8-C960-418A-BD73-9A8920536289}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0133F5B8-C960-418A-BD73-9A8920536289}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E78C9FCF-0ECD-448A-9017-4006197900E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E78C9FCF-0ECD-448A-9017-4006197900E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E78C9FCF-0ECD-448A-9017-4006197900E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E78C9FCF-0ECD-448A-9017-4006197900E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CFE245B-530D-4904-83E1-5ED3F5136679}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CFE245B-530D-4904-83E1-5ED3F5136679}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CFE245B-530D-4904-83E1-5ED3F5136679}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CFE245B-530D-4904-83E1-5ED3F5136679}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4A1C2D3-E4F5-6789-ABCD-EF0123456789}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4A1C2D3-E4F5-6789-ABCD-EF0123456789}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4A1C2D3-E4F5-6789-ABCD-EF0123456789}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4A1C2D3-E4F5-6789-ABCD-EF0123456789}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{887794D8-55D3-03D8-8CBC-78A6ECBAF6DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{887794D8-55D3-03D8-8CBC-78A6ECBAF6DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{887794D8-55D3-03D8-8CBC-78A6ECBAF6DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{887794D8-55D3-03D8-8CBC-78A6ECBAF6DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDF92BA6-3E36-B944-17BD-D5F1079D722D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDF92BA6-3E36-B944-17BD-D5F1079D722D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDF92BA6-3E36-B944-17BD-D5F1079D722D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDF92BA6-3E36-B944-17BD-D5F1079D722D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0A9F6044-BBFA-4D44-83B0-E6E006FC680A}
+	EndGlobalSection
+EndGlobal

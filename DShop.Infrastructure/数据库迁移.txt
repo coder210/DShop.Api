@@ -1,0 +1,19 @@
+--1
+Add-Migration -Name "Update" -Project "Infrastructure" -StartupProject "Api"
+
+--2
+Script-Migration -Project "Infrastructure" -StartupProject "Api" -Output "migration.sql"
+
+
+Update-Database -Project "Infrastructure" -StartupProject "Api"
+
+
+--3
+-- Éý¼¶
+Script-Migration -Project "Infrastructure" -StartupProject "Api" -From 20260714072805_Update_NewTables -Output "incremental.sql"
+
+Script-Migration -Project "Infrastructure" -StartupProject "Api" -From 20260714072805_Update_NewTables -To 20260714072805_Update_NewTables -Output "update.sql"
+
+-- ½µ¼¶
+Script-Migration -Project "Infrastructure" -StartupProject "Api" -From 20260713025436_Update -To 0 -Output "update.sql"
+

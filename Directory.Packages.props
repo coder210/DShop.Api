@@ -1,0 +1,51 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Serilog -->
+    <PackageVersion Include="Serilog" Version="4.3.1" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="8.0.0" />
+    <PackageVersion Include="Serilog.Settings.Configuration" Version="8.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="5.0.1" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
+
+    <!-- EF Core -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="6.0.36" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.36" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.36" />
+
+    <!-- ASP.NET Core 认证 -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.25" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.4" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+
+    <!-- 模板引擎 -->
+    <PackageVersion Include="Scriban" Version="7.2.5" />
+
+    <!-- Excel 处理 -->
+    <PackageVersion Include="Aspose.Cells" Version="21.10.0" />
+    <PackageVersion Include="NPOI" Version="2.7.6" />
+
+    <!-- Swagger -->
+    <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.5" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.Swagger" Version="10.1.5" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.5" />
+    <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.5" />
+
+    <!-- 插件热更 -->
+    <PackageVersion Include="McMaster.NETCore.Plugins" Version="2.0.0" />
+    <PackageVersion Include="McMaster.NETCore.Plugins.Mvc" Version="2.0.0" />
+
+    <!-- 序列化 / 其它 -->
+    <PackageVersion Include="ServiceStack.Text" Version="6.11.0" />
+    <PackageVersion Include="System.CodeDom" Version="8.0.0" />
+    <PackageVersion Include="System.Diagnostics.PerformanceCounter" Version="8.0.1" />
+    <PackageVersion Include="System.Security.Permissions" Version="8.0.0" />
+    <PackageVersion Include="System.IO.Ports" Version="8.0.0" />
+    <PackageVersion Include="System.Threading.AccessControl" Version="8.0.0" />
+    <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="8.0.0" />
+  </ItemGroup>
+</Project>
