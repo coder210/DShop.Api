@@ -16,12 +16,12 @@ namespace DShop.Models
         public string TemplateCode { get; set; }
         [MaxLength(100)] 
         /// <summary>
-        /// 如 "样品检测委托单"
+        /// 如 "用户信息导出表"
         /// </summary>
         public string TemplateName { get; set; }
         [MaxLength(50)] 
         /// <summary>
-        /// ★ 关键字段：Order, WorkTask, Preparation, LabTask, SampleMap, Report
+        /// 文档类型：用于区分模板适用的业务单据（英文枚举，如 Order、Report 等）。
         /// </summary>
         public string DocumentType { get; set; }
         [MaxLength(50)]
@@ -34,6 +34,10 @@ namespace DShop.Models
         /// 物理路径（Word/Excel/HTML模板）
         /// </summary>
         public string FilePath { get; set; }
+        /// <summary>
+        /// 模板内容（HTML 片段），用于在线渲染打印
+        /// </summary>
+        public string? TemplateContent { get; set; }
         [MaxLength(20)] 
         /// <summary>
         /// 版本号

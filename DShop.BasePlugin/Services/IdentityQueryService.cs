@@ -61,18 +61,92 @@ namespace DShop.BasePlugin.Services
 
         public List<Menu> GetUserMenus(long userId)
         {
-            var menuIdList = _context.UserMenus
+            // 角色菜单 ∪ 用户直绑菜单（并集去重）
+            var roleMenuIds = _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .SelectMany(roleId => _context.RoleMenus
+                    .Where(rm => rm.RoleId == roleId)
+                    .Select(rm => rm.MenuId))
+                .ToList();
+
+            var userMenuIds = _context.UserMenus
                 .Where(it => it.UserId == userId)
-                .Select(it => it.MenuId).ToList();
-            return _context.Menus.Where(it => menuIdList.Contains(it.Id)).ToList();
+                .Select(it => it.MenuId)
+                .ToList();
+
+            var menuIds = roleMenuIds.Union(userMenuIds).Distinct().ToList();
+            return _context.Menus.Where(it => menuIds.Contains(it.Id)).ToList();
         }
 
         public List<Permission> GetUserPermissions(long userId)
         {
-            var permissionIdList = _context.UserPermissions
+            // 角色权限 ∪ 用户直绑权限（并集去重）
+            var rolePermissionIds = _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .SelectMany(roleId => _context.RolePermissions
+                    .Where(rp => rp.RoleId == roleId)
+                    .Select(rp => rp.PermissionId))
+                .ToList();
+
+            var userPermissionIds = _context.UserPermissions
                 .Where(it => it.UserId == userId)
-                .Select(it => it.PermissionId).ToList();
-            return _context.Permissions.Where(it => permissionIdList.Contains(it.Id)).ToList();
+                .Select(it => it.PermissionId)
+                .ToList();
+
+            var permissionIds = rolePermissionIds.Union(userPermissionIds).Distinct().ToList();
+            // 仅返回接口仍然存在的权限（IsActive=true）；代码中已删除的接口（IsActive=false）不进入用户权限，
+            // 从而不会写入 JWT，鉴权过滤器会拒绝访问这些已失效接口。
+            return _context.Permissions
+                .Where(it => permissionIds.Contains(it.Id) && it.IsActive)
+                .ToList();
+        }
+
+        /// <summary>
+        /// 获取用户拥有的角色编码列表（取所有角色的并集）
+        /// </summary>
+        public List<string> GetUserRoleCodes(long userId)
+        {
+            return _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .Join(_context.Roles, ur => ur, r => r.Id, (_, r) => r.Code)
+                .Where(code => !string.IsNullOrEmpty(code))
+                .Distinct()
+                .ToList();
+        }
+
+        public List<Role> GetRoles()
+        {
+            return _context.Roles.OrderBy(r => r.SortOrder).ToList();
+        }
+
+        public List<int> GetUserRoleIds(long userId)
+        {
+            return _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .Distinct()
+                .ToList();
+        }
+
+        public List<long> GetRoleMenus(int roleId)
+        {
+            return _context.RoleMenus
+                .Where(rm => rm.RoleId == roleId)
+                .Select(rm => rm.MenuId)
+                .Distinct()
+                .ToList();
+        }
+
+        public List<long> GetRolePermissions(int roleId)
+        {
+            return _context.RolePermissions
+                .Where(rp => rp.RoleId == roleId)
+                .Select(rp => rp.PermissionId)
+                .Distinct()
+                .ToList();
         }
 
         // ==================== 菜单查询 ====================
@@ -110,14 +184,6 @@ namespace DShop.BasePlugin.Services
             var allMenus = _context.Menus.ToList();
             var rootMenus = allMenus.Where(m => m.ParentId == 0).OrderBy(m => m.SortOrder);
             return BuildTree(rootMenus, allMenus);
-        }
-
-        public List<long> GetMenuPermissionList(long menuId)
-        {
-            return _context.MenuPermissions
-                .Where(it => it.MenuId == menuId)
-                .Select(it => it.PermissionId)
-                .ToList();
         }
 
         // ==================== 权限查询 ====================
@@ -168,6 +234,7 @@ namespace DShop.BasePlugin.Services
                 Path = menu.Path,
                 Icon = menu.Icon,
                 SortOrder = menu.SortOrder,
+                Controller = menu.Controller,
             };
         }
     }

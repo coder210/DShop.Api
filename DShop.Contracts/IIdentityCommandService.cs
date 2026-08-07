@@ -19,7 +19,17 @@ namespace DShop.Contracts
         bool BindMenuList(long userId, List<long> menuIdList);
 
         // ==================== 用户-权限绑定 ====================
-        bool BindPermissionList(long userId, List<long> permissionIdList);
+        (bool Success, string Message) BindPermissionList(long userId, List<long> permissionIdList);
+
+        // ==================== 用户-角色绑定 ====================
+        (bool Success, string Message) BindRoleList(long userId, List<int> roleIdList);
+
+        // ==================== 角色管理 ====================
+        int CreateRole(Role role, out string msg);
+        bool UpdateRole(Role role, out string msg);
+        bool DeleteRole(int id, out string msg);
+        bool BindRoleMenus(int roleId, List<long> menuIds);
+        bool BindRolePermissions(int roleId, List<long> permissionIds);
 
         // ==================== 菜单管理 ====================
         bool AddMenu(MenuCreateRequest request);
@@ -28,7 +38,7 @@ namespace DShop.Contracts
         bool DeleteMenus(IEnumerable<long> ids, out string msg);
 
         // ==================== 菜单-权限绑定 ====================
-        bool BindMenuPermissionList(long menuId, List<long> permissionIdList);
+
 
         // ==================== 权限管理 ====================
         bool AddPermission(Permission permission, out string msg);

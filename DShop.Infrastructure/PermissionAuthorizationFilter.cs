@@ -7,23 +7,6 @@ namespace DShop.Infrastructure
 {
     public class PermissionAuthorizationFilter : IAsyncAuthorizationFilter
     {
-        /// <summary>
-        /// 根据 Controller 所在命名空间推导端前缀。
-        /// 命名空间包含 ".Admin." → "admin"，包含 ".App." → "app"，否则不添加前缀。
-        /// </summary>
-        private static string? ResolveModulePrefix(AuthorizationFilterContext context)
-        {
-            var controllerFullName = context.ActionDescriptor.DisplayName;
-            if (string.IsNullOrEmpty(controllerFullName))
-                return null;
-
-            if (controllerFullName.Contains(".Admin."))
-                return "admin";
-            if (controllerFullName.Contains(".App."))
-                return "app";
-            return null;
-        }
-
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
             // 1. 允许匿名访问
@@ -45,11 +28,9 @@ namespace DShop.Infrastructure
                 return;
             }
 
-            // 4. 拼接完整的权限码（端前缀 + 权限码）
-            var modulePrefix = ResolveModulePrefix(context);
-            var fullPermissionCode = modulePrefix != null
-                ? $"{modulePrefix}::{permissionAttr.PermissionCode}"
-                : permissionAttr.PermissionCode;
+            // 4. 拼接完整的权限码（端前缀来自特性声明的 Client，默认 admin；不再依赖命名空间推导）
+            var client = permissionAttr.Client ?? "admin";
+            var fullPermissionCode = $"{client}::{permissionAttr.PermissionCode}";
 
             // 5. 检查权限
             if (user.Claims.Any(c => c.Type == "permissions"))

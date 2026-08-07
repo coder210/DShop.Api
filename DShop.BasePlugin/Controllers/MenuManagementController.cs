@@ -16,11 +16,13 @@ namespace DShop.BasePlugin.Controllers
     {
         private readonly IIdentityQueryService _identityQueryService;
         private readonly IIdentityCommandService _identityCommandService;
+        private readonly IPermissionSeedService _permissionSeedService;
 
-        public MenuManagementController(IIdentityQueryService identityQueryService, IIdentityCommandService identityCommandService)
+        public MenuManagementController(IIdentityQueryService identityQueryService, IIdentityCommandService identityCommandService, IPermissionSeedService permissionSeedService)
         {
             _identityQueryService = identityQueryService;
             _identityCommandService = identityCommandService;
+            _permissionSeedService = permissionSeedService;
         }
 
         /// <summary>
@@ -75,6 +77,18 @@ namespace DShop.BasePlugin.Controllers
             if (_identityCommandService.DeleteMenu(id, out string msg))
                 return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "删除成功" });
             return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "删除失败:" + msg });
+        }
+
+        /// <summary>
+        /// 校验菜单声明的控制器与其权限是否一致
+        /// </summary>
+        [SwaggerOperation(Summary = "校验菜单-控制器-权限一致性", Description = "检查菜单声明的控制器在库里是否缺权限、是否存在孤立权限、是否指向不存在的控制器")]
+        [AuthorizePermission("menu-management:check", "校验菜单权限一致性")]
+        [HttpGet("CheckControllerPermissions")]
+        public IActionResult CheckControllerPermissions()
+        {
+            var report = _permissionSeedService.GetControllerPermissionReport();
+            return Ok(new ApiResponse { Code = 200, Data = report, Msg = "校验完成" });
         }
     }
 }

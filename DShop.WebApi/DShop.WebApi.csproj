@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="ServiceStack.Text" />
     <!-- McMaster.NETCore.Plugins 通过 DShop.Infrastructure 间接引用 -->

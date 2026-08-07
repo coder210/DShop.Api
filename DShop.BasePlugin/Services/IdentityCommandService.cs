@@ -79,15 +79,23 @@ namespace DShop.BasePlugin.Services
                 return result;
             }
 
-            var menuIdList = _context.UserMenus.Where(it => it.UserId == user.Id).Select(it => it.MenuId).ToList();
-            var permissionIdList = _context.MenuPermissions.Where(it => menuIdList.Contains(it.MenuId)).Select(it => it.PermissionId).ToList();
-            var permissionIdList2 = _context.UserPermissions.Where(it => it.UserId == user.Id).Select(it => it.PermissionId).ToList();
-            permissionIdList.AddRange(permissionIdList2);
-            permissionIdList = permissionIdList.Distinct().ToList();
+            // 权限来源：角色权限 ∪ 用户直绑权限（通过 IdentityQueryService 汇总）
+            var userPermissions = _identityQueryService.GetUserPermissions(user.Id);
+            var permissionCodeList = userPermissions
+                .Select(p => p.PermissionCode)
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct()
+                .ToList();
 
-            var permissionCodeList = _context.Permissions.Where(it => permissionIdList.Contains(it.Id)).Select(it => it.PermissionCode).ToList();
+            // 角色来源：用户所有角色编码的并集
+            var roleCodeList = _identityQueryService.GetUserRoleCodes(user.Id);
 
-            string newToken = JwtHelper.GenerateJwtToken(user.Id.ToString(), user.Username, permissionCodeList.ToArray(), expireMinutes);
+            string newToken = JwtHelper.GenerateJwtToken(
+                user.Id.ToString(),
+                user.Username,
+                permissionCodeList.ToArray(),
+                expireMinutes,
+                roleCodeList.ToArray());
 
             _context.RefreshTokens.Add(new RefreshToken
             {
@@ -330,31 +338,257 @@ namespace DShop.BasePlugin.Services
 
         // ==================== 用户-权限绑定 ====================
 
-        public bool BindPermissionList(long userId, List<long> permissionIdList)
+        public (bool Success, string Message) BindPermissionList(long userId, List<long> permissionIdList)
         {
-            using var transaction = _context.Database.BeginTransaction();
-            try
+            // 启用重试执行策略，将事务整体作为可重试单元（EnableRetryOnFailure 下不允许直接 BeginTransaction）
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return strategy.Execute(() =>
             {
-                var existingPermissions = _context.UserPermissions.Where(up => up.UserId == userId);
-                _context.UserPermissions.RemoveRange(existingPermissions);
-
-                var newPermissions = permissionIdList.Select(permissionId => new UserPermission
+                using var transaction = _context.Database.BeginTransaction();
+                try
                 {
-                    UserId = userId,
-                    PermissionId = permissionId,
-                    CreatedAt = DateTime.Now
-                });
-                _context.UserPermissions.AddRange(newPermissions);
+                    // 校验用户是否存在
+                    if (_context.Users.FirstOrDefault(u => u.Id == userId) == null)
+                    {
+                        _logger.LogWarning("BindPermissionList 失败：用户 {UserId} 不存在", userId);
+                        transaction.Rollback();
+                        return (false, $"用户 {userId} 不存在");
+                    }
 
-                _context.SaveChanges();
-                transaction.Commit();
-                return true;
-            }
-            catch (Exception)
+                    // 校验传入的权限Id是否都存在于 Permissions 表，避免外键约束异常
+                    var validPermissionIds = _context.Permissions
+                        .Where(p => permissionIdList.Contains(p.Id))
+                        .Select(p => p.Id)
+                        .ToHashSet();
+                    var invalidIds = permissionIdList.Where(id => !validPermissionIds.Contains(id)).ToList();
+                    if (invalidIds.Any())
+                    {
+                        _logger.LogWarning("BindPermissionList 跳过不存在的权限Id: {InvalidIds}", string.Join(",", invalidIds));
+                    }
+
+                    var existingPermissions = _context.UserPermissions.Where(up => up.UserId == userId);
+                    _context.UserPermissions.RemoveRange(existingPermissions);
+
+                    var newPermissions = validPermissionIds.Select(permissionId => new UserPermission
+                    {
+                        UserId = userId,
+                        PermissionId = permissionId,
+                        CreatedAt = DateTime.Now
+                    });
+                    _context.UserPermissions.AddRange(newPermissions);
+
+                    _context.SaveChanges();
+                    transaction.Commit();
+
+                    if (invalidIds.Any())
+                    {
+                        return (true, $"绑定成功，但以下权限Id在Permissions表中不存在已跳过: {string.Join(",", invalidIds)}");
+                    }
+                    return (true, "绑定成功");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "BindPermissionList 异常：UserId={UserId}", userId);
+                    transaction.Rollback();
+                    return (false, $"绑定异常: {ex.Message}");
+                }
+            });
+        }
+
+        public (bool Success, string Message) BindRoleList(long userId, List<int> roleIdList)
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return strategy.Execute(() =>
             {
-                transaction.Rollback();
+                using var transaction = _context.Database.BeginTransaction();
+                try
+                {
+                    if (_context.Users.FirstOrDefault(u => u.Id == userId) == null)
+                    {
+                        _logger.LogWarning("BindRoleList 失败：用户 {UserId} 不存在", userId);
+                        transaction.Rollback();
+                        return (false, $"用户 {userId} 不存在");
+                    }
+
+                    var validRoleIds = _context.Roles
+                        .Where(r => roleIdList.Contains(r.Id))
+                        .Select(r => r.Id)
+                        .ToHashSet();
+                    var invalidIds = roleIdList.Where(id => !validRoleIds.Contains(id)).ToList();
+                    if (invalidIds.Any())
+                    {
+                        _logger.LogWarning("BindRoleList 跳过不存在的角色Id: {InvalidIds}", string.Join(",", invalidIds));
+                    }
+
+                    var existingRoles = _context.UserRoles.Where(ur => ur.UserId == userId);
+                    _context.UserRoles.RemoveRange(existingRoles);
+
+                    var newRoles = validRoleIds.Select(roleId => new UserRole
+                    {
+                        UserId = userId,
+                        RoleId = roleId,
+                    });
+                    _context.UserRoles.AddRange(newRoles);
+
+                    _context.SaveChanges();
+                    transaction.Commit();
+
+                    if (invalidIds.Any())
+                    {
+                        return (true, $"绑定成功，但以下角色Id在Roles表中不存在已跳过: {string.Join(",", invalidIds)}");
+                    }
+                    return (true, "绑定成功");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "BindRoleList 异常：UserId={UserId}", userId);
+                    transaction.Rollback();
+                    var detail = ex.InnerException != null ? $"（{ex.InnerException.Message}）" : string.Empty;
+                    return (false, $"绑定异常: {ex.Message}{detail}");
+                }
+            });
+        }
+
+        // ==================== 角色管理 ====================
+
+        public int CreateRole(Role role, out string msg)
+        {
+            msg = string.Empty;
+            if (role == null || string.IsNullOrWhiteSpace(role.Code) || string.IsNullOrWhiteSpace(role.Name))
+            {
+                msg = "角色编码和名称不能为空";
+                return 0;
+            }
+            if (_context.Roles.Any(r => r.Code == role.Code))
+            {
+                msg = $"角色编码 {role.Code} 已存在";
+                return 0;
+            }
+            _context.Roles.Add(role);
+            _context.SaveChanges();
+            msg = "创建成功";
+            return role.Id;
+        }
+
+        public bool UpdateRole(Role role, out string msg)
+        {
+            msg = string.Empty;
+            var existing = _context.Roles.FirstOrDefault(r => r.Id == role.Id);
+            if (existing == null)
+            {
+                msg = "角色不存在";
                 return false;
             }
+            if (_context.Roles.Any(r => r.Code == role.Code && r.Id != role.Id))
+            {
+                msg = $"角色编码 {role.Code} 已存在";
+                return false;
+            }
+            existing.Code = role.Code;
+            existing.Name = role.Name;
+            existing.Description = role.Description;
+            existing.SortOrder = role.SortOrder;
+            existing.IsSystem = role.IsSystem;
+            _context.SaveChanges();
+            msg = "更新成功";
+            return true;
+        }
+
+        public bool DeleteRole(int id, out string msg)
+        {
+            msg = string.Empty;
+            var role = _context.Roles.FirstOrDefault(r => r.Id == id);
+            if (role == null)
+            {
+                msg = "角色不存在";
+                return false;
+            }
+            if (role.IsSystem)
+            {
+                msg = "系统角色不可删除";
+                return false;
+            }
+            if (_context.UserRoles.Any(ur => ur.RoleId == id))
+            {
+                msg = "该角色已分配给用户，无法删除";
+                return false;
+            }
+            _context.RoleMenus.RemoveRange(_context.RoleMenus.Where(rm => rm.RoleId == id));
+            _context.RolePermissions.RemoveRange(_context.RolePermissions.Where(rp => rp.RoleId == id));
+            _context.Roles.Remove(role);
+            _context.SaveChanges();
+            msg = "删除成功";
+            return true;
+        }
+
+        public bool BindRoleMenus(int roleId, List<long> menuIds)
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return strategy.Execute(() =>
+            {
+                using var transaction = _context.Database.BeginTransaction();
+                try
+                {
+                    if (_context.Roles.FirstOrDefault(r => r.Id == roleId) == null)
+                    {
+                        transaction.Rollback();
+                        return false;
+                    }
+                    var existing = _context.RoleMenus.Where(rm => rm.RoleId == roleId).ToList();
+                    _context.RoleMenus.RemoveRange(existing);
+                    var validIds = _context.Menus.Where(m => menuIds.Contains(m.Id)).Select(m => m.Id).ToHashSet();
+                    var toAdd = validIds.Select(menuId => new RoleMenu
+                    {
+                        RoleId = roleId,
+                        MenuId = menuId
+                    }).ToList();
+                    _context.RoleMenus.AddRange(toAdd);
+                    _context.SaveChanges();
+                    transaction.Commit();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "BindRoleMenus 异常：RoleId={RoleId}", roleId);
+                    transaction.Rollback();
+                    return false;
+                }
+            });
+        }
+
+        public bool BindRolePermissions(int roleId, List<long> permissionIds)
+        {
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return strategy.Execute(() =>
+            {
+                using var transaction = _context.Database.BeginTransaction();
+                try
+                {
+                    if (_context.Roles.FirstOrDefault(r => r.Id == roleId) == null)
+                    {
+                        transaction.Rollback();
+                        return false;
+                    }
+                    var existing = _context.RolePermissions.Where(rp => rp.RoleId == roleId).ToList();
+                    _context.RolePermissions.RemoveRange(existing);
+                    var validIds = _context.Permissions.Where(p => permissionIds.Contains(p.Id)).Select(p => p.Id).ToHashSet();
+                    var toAdd = validIds.Select(permissionId => new RolePermission
+                    {
+                        RoleId = roleId,
+                        PermissionId = permissionId
+                    }).ToList();
+                    _context.RolePermissions.AddRange(toAdd);
+                    _context.SaveChanges();
+                    transaction.Commit();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "BindRolePermissions 异常：RoleId={RoleId}", roleId);
+                    transaction.Rollback();
+                    return false;
+                }
+            });
         }
 
         // ==================== 菜单管理 ====================
@@ -366,6 +600,7 @@ namespace DShop.BasePlugin.Services
                 Name = request.Name,
                 Path = request.Path,
                 Icon = request.Icon,
+                Controller = request.Controller ?? "",
                 ParentId = request.ParentId,
                 SortOrder = request.SortOrder,
                 CreatedAt = DateTime.Now
@@ -393,6 +628,7 @@ namespace DShop.BasePlugin.Services
             existing.Name = request.Name;
             existing.Path = request.Path;
             existing.Icon = request.Icon;
+            existing.Controller = request.Controller ?? "";
             existing.ParentId = request.ParentId;
             existing.SortOrder = request.SortOrder;
 
@@ -412,12 +648,6 @@ namespace DShop.BasePlugin.Services
             if (_context.UserMenus.Where(it => it.MenuId == id).Count() > 0)
             {
                 msg = "当前菜单已被用户使用";
-                return false;
-            }
-
-            if (_context.MenuPermissions.Where(it => it.MenuId == id).Count() > 0)
-            {
-                msg = "当前菜单已被权限使用";
                 return false;
             }
 
@@ -443,12 +673,6 @@ namespace DShop.BasePlugin.Services
                 return false;
             }
 
-            if (_context.MenuPermissions.Where(it => ids.Contains(it.MenuId)).Count() > 0)
-            {
-                msg = "当前菜单已被权限使用";
-                return false;
-            }
-
             _context.Menus.RemoveRange(menus);
             if (_context.SaveChanges() >= menus.Count())
             {
@@ -460,45 +684,6 @@ namespace DShop.BasePlugin.Services
                 msg = $"部分删除失败";
                 return false;
             }
-        }
-
-        // ==================== 菜单-权限绑定 ====================
-
-        public bool BindMenuPermissionList(long menuId, List<long> permissionIdList)
-        {
-            var existingRelations = _context.MenuPermissions
-                .Where(mp => mp.MenuId == menuId)
-                .ToList();
-
-            var existingPermissionIds = existingRelations
-                .Select(mp => mp.PermissionId)
-                .ToHashSet();
-
-            var toDelete = existingRelations
-                .Where(mp => !permissionIdList.Contains(mp.PermissionId))
-                .ToList();
-
-            var toAdd = permissionIdList
-                .Where(id => !existingPermissionIds.Contains(id))
-                .Select(id => new MenuPermission
-                {
-                    MenuId = menuId,
-                    PermissionId = id,
-                    CreatedAt = DateTime.Now,
-                })
-                .ToList();
-
-            if (toDelete.Any())
-            {
-                _context.MenuPermissions.RemoveRange(toDelete);
-            }
-            if (toAdd.Any())
-            {
-                _context.MenuPermissions.AddRange(toAdd);
-            }
-
-            _context.SaveChanges();
-            return true;
         }
 
         // ==================== 权限管理 ====================
@@ -592,12 +777,6 @@ namespace DShop.BasePlugin.Services
                 return false;
             }
 
-            if (_context.MenuPermissions.Where(it => it.PermissionId == permission.Id).Count() > 0)
-            {
-                msg = "当前权限已被菜单使用";
-                return false;
-            }
-
             _context.Permissions.Remove(permission);
             if (_context.SaveChanges() > 0)
             {
@@ -617,12 +796,6 @@ namespace DShop.BasePlugin.Services
             if (_context.UserPermissions.Where(it => ids.Contains(it.PermissionId)).Count() > 0)
             {
                 msg = "当前权限已被用户使用";
-                return false;
-            }
-
-            if (_context.MenuPermissions.Where(it => ids.Contains(it.PermissionId)).Count() > 0)
-            {
-                msg = "当前权限已被菜单使用";
                 return false;
             }
 
@@ -666,26 +839,14 @@ namespace DShop.BasePlugin.Services
 
             foreach (var controller in controllers)
             {
-                string? modulePrefix = null;
-                var ns = controller.Namespace;
-
-                if (ns != null)
-                {
-                    if (ns.Contains(".Admin"))
-                        modulePrefix = "admin";
-                    else if (ns.Contains(".App"))
-                        modulePrefix = "app";
-                }
-
                 var actions = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
                 foreach (var action in actions)
                 {
                     var actionAttr = action.GetCustomAttribute<AuthorizePermissionAttribute>();
                     if (actionAttr != null)
                     {
-                        var code = modulePrefix != null
-                            ? $"{modulePrefix}::{actionAttr.PermissionCode}"
-                            : actionAttr.PermissionCode;
+                        var client = actionAttr.Client ?? "admin";
+                        var code = $"{client}::{actionAttr.PermissionCode}";
                         var name = actionAttr.Name ?? code;
                         permissionMap[code] = name;
                     }

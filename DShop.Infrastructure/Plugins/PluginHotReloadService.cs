@@ -378,8 +378,15 @@ public class PluginHotReloadService : BackgroundService
         {
             using var scope = _mainServiceProvider.CreateScope();
             var seedService = scope.ServiceProvider.GetRequiredService<IPermissionSeedService>();
-            seedService.SeedPermissions(new List<Assembly> { plugin.Assembly });
-            _logger.LogDebug("[HotReload] 权限种子已更新");
+            // 传入当前所有已加载插件的程序集，保证权限表与控制器扫描覆盖全部插件，
+            // 避免仅传入触发热更新的单个插件导致 _scannedAssemblies 缓存遗漏其它插件，
+            // 进而使菜单-控制器一致性校验把其它插件的控制器误判为"不存在的控制器"。
+            var allPluginAssemblies = _plugins.Values
+                .Select(p => p.Assembly)
+                .Distinct()
+                .ToList();
+            seedService.SeedPermissions(allPluginAssemblies);
+            _logger.LogDebug("[HotReload] 权限种子已更新（覆盖 {Count} 个插件）", allPluginAssemblies.Count);
         }
         catch (Exception ex)
         {

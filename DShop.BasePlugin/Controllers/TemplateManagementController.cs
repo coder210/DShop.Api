@@ -1,5 +1,6 @@
 using DShop.Contracts;
 using DShop.Contracts.Dto;
+using DShop.PluginShared;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DShop.BasePlugin.Controllers
@@ -18,6 +19,7 @@ namespace DShop.BasePlugin.Controllers
         }
 
         [HttpGet("GetList")]
+        [AuthorizePermission("template:get:list", "获取模板列表")]
         public IActionResult GetList([FromQuery] string? keyword, [FromQuery] int page = 1, [FromQuery] int size = 20)
         {
             var result = _systemQueryService.GetTemplateList(keyword, page, size);
@@ -25,6 +27,7 @@ namespace DShop.BasePlugin.Controllers
         }
 
         [HttpGet("Get/{id}")]
+        [AuthorizePermission("template:get:detail", "获取模板详情")]
         public IActionResult Get(long id)
         {
             var result = _systemQueryService.GetTemplateById(id);
@@ -32,6 +35,7 @@ namespace DShop.BasePlugin.Controllers
         }
 
         [HttpPost("Create")]
+        [AuthorizePermission("template:create", "创建模板")]
         public IActionResult Create([FromBody] CreateTemplateRequest request)
         {
             var success = _systemCommandService.CreateTemplate(request, out string msg);
@@ -39,13 +43,15 @@ namespace DShop.BasePlugin.Controllers
         }
 
         [HttpPost("Update")]
+        [AuthorizePermission("template:update", "更新模板")]
         public IActionResult Update([FromBody] UpdateTemplateRequest request)
         {
             var success = _systemCommandService.UpdateTemplate(request, out string msg);
             return Ok(new ApiResponse { Code = success ? 200 : 400, Msg = msg });
         }
 
-        [HttpDelete("Delete/{id}")]
+        [HttpPost("Delete/{id}")]
+        [AuthorizePermission("template:delete", "删除模板")]
         public IActionResult Delete(long id)
         {
             var success = _systemCommandService.DeleteTemplate(id, out string msg);

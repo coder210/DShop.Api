@@ -11,12 +11,17 @@ namespace DShop.Contracts
         bool GetValidatedToken(long id, out RefreshToken? tokenInfo);
         List<Menu> GetUserMenus(long userId);
         List<Permission> GetUserPermissions(long userId);
+        List<string> GetUserRoleCodes(long userId);
+        List<Role> GetRoles();
+        List<int> GetUserRoleIds(long userId);
+        List<long> GetRoleMenus(int roleId);
+        List<long> GetRolePermissions(int roleId);
 
         // ==================== 菜单查询 ====================
         List<MenuResponse> GetMenus(MenuQueryRequest query);
         MenuResponse GetMenuById(long id);
         List<MenuResponse> GetMenuTree();
-        List<long> GetMenuPermissionList(long menuId);
+
 
         // ==================== 权限查询 ====================
         List<Permission> GetPermissions();

@@ -21,7 +21,7 @@ namespace DShop.PluginShared
             _audience = audience;
         }
 
-        public static string GenerateJwtToken(string userId, string userName, string[] permissionIds, int expireMinutes = 30)
+        public static string GenerateJwtToken(string userId, string userName, string[] permissionIds, int expireMinutes = 30, string[]? roles = null)
         {
             // 1. 创建安全密钥
             var securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_secretKey));
@@ -36,6 +36,12 @@ namespace DShop.PluginShared
             // 将权限ID列表合并为一个字符串，用逗号分隔
             new Claim("permissions", string.Join(",", permissionIds))  // 自定义声明类型
         };
+
+            // 角色编码列表合并为一个字符串，用逗号分隔
+            if (roles != null && roles.Length > 0)
+            {
+                claims.Add(new Claim("roles", string.Join(",", roles)));
+            }
 
             // 3. 设置令牌过期时间
             var expires = DateTime.Now.AddMinutes(expireMinutes);

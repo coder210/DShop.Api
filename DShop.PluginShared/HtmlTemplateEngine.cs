@@ -124,6 +124,21 @@ namespace DShop.PluginShared
         }
 
         /// <summary>
+        /// 渲染模板（适配 object? 类型数据源，内部转为字符串后替换占位符）。
+        /// 与 Scriban 约定的 {{key}} 单值变量、{{ for item in Collection }} 集合循环兼容。
+        /// </summary>
+        public static string Render(string htmlTemplate, Dictionary<string, object?> data)
+        {
+            if (string.IsNullOrEmpty(htmlTemplate)) return htmlTemplate;
+
+            var stringData = data.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value?.ToString() ?? string.Empty);
+
+            return ReplacePlaceholders(htmlTemplate, stringData);
+        }
+
+        /// <summary>
         /// 处理 {{#if VarName}}...{{else}}...{{/if}} 条件块
         /// </summary>
         private static string ProcessConditionals(string template, Dictionary<string, string> data)
