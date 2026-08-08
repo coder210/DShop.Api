@@ -11,9 +11,9 @@ namespace DShop.Models
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
-        public int RoleId { get; set; }
+        public long RoleId { get; set; }
 
         public long PermissionId { get; set; }
 

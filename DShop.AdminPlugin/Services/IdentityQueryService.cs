@@ -59,20 +59,52 @@ namespace DShop.AdminPlugin.Services
             return _tokenValidator.ValidateToken(id, out tokenInfo);
         }
 
+        /// <summary>
+        /// 取用户可见菜单：角色菜单(主) ∪ 用户额外菜单(加成)。
+        /// </summary>
         public List<Menu> GetUserMenus(long userId)
         {
-            var menuIdList = _context.UserMenus
-                .Where(it => it.UserId == userId)
-                .Select(it => it.MenuId).ToList();
-            return _context.Menus.Where(it => menuIdList.Contains(it.Id)).ToList();
+            var roleIds = _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .ToList();
+
+            var roleMenuIds = _context.RoleMenus
+                .Where(rm => roleIds.Contains(rm.RoleId))
+                .Select(rm => rm.MenuId)
+                .ToHashSet();
+
+            var userMenuIds = _context.UserMenus
+                .Where(um => um.UserId == userId)
+                .Select(um => um.MenuId)
+                .ToHashSet();
+
+            var menuIds = roleMenuIds.Union(userMenuIds).ToList();
+            return _context.Menus.Where(it => menuIds.Contains(it.Id)).ToList();
         }
 
+        /// <summary>
+        /// 取用户拥有的权限：角色权限(主) ∪ 用户额外权限(加成)。
+        /// </summary>
         public List<Permission> GetUserPermissions(long userId)
         {
-            var permissionIdList = _context.UserPermissions
-                .Where(it => it.UserId == userId)
-                .Select(it => it.PermissionId).ToList();
-            return _context.Permissions.Where(it => permissionIdList.Contains(it.Id)).ToList();
+            var roleIds = _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .ToList();
+
+            var rolePermissionIds = _context.RolePermissions
+                .Where(rp => roleIds.Contains(rp.RoleId))
+                .Select(rp => rp.PermissionId)
+                .ToHashSet();
+
+            var userPermissionIds = _context.UserPermissions
+                .Where(up => up.UserId == userId)
+                .Select(up => up.PermissionId)
+                .ToHashSet();
+
+            var permissionIds = rolePermissionIds.Union(userPermissionIds).ToList();
+            return _context.Permissions.Where(it => permissionIds.Contains(it.Id)).ToList();
         }
 
         // ==================== 菜单查询 ====================
@@ -182,7 +214,7 @@ namespace DShop.AdminPlugin.Services
                 .ToList();
         }
 
-        public List<int> GetUserRoleIds(long userId)
+        public List<long> GetUserRoleIds(long userId)
         {
             return _context.UserRoles
                 .Where(ur => ur.UserId == userId)
@@ -190,7 +222,7 @@ namespace DShop.AdminPlugin.Services
                 .ToList();
         }
 
-        public List<long> GetRoleMenus(int roleId)
+        public List<long> GetRoleMenus(long roleId)
         {
             return _context.RoleMenus
                 .Where(rm => rm.RoleId == roleId)
@@ -198,7 +230,7 @@ namespace DShop.AdminPlugin.Services
                 .ToList();
         }
 
-        public List<long> GetRolePermissions(int roleId)
+        public List<long> GetRolePermissions(long roleId)
         {
             return _context.RolePermissions
                 .Where(rp => rp.RoleId == roleId)

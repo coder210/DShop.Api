@@ -31,23 +31,29 @@ public static class DbSeeder
         }
 
         // 2. 内置角色 admin（权限种子依赖该角色存在）
+        long adminRoleId = 0;
         if (!context.Roles.Any(r => r.Code == "admin"))
         {
-            context.Roles.Add(new Role
+            var adminRole = new Role
             {
                 Code = "admin",
                 Name = "管理员",
                 Description = "系统超级管理员，拥有全部权限",
                 SortOrder = 0,
                 IsSystem = true
-            });
+            };
+            context.Roles.Add(adminRole);
             context.SaveChanges();
+            adminRoleId = adminRole.Id;
+        }
+        else
+        {
+            adminRoleId = context.Roles.First(r => r.Code == "admin").Id;
         }
 
         // 3. 管理员账号（用户名 admin / 密码 admin123）
         if (!context.Users.Any())
         {
-            var adminRole = context.Roles.First(r => r.Code == "admin");
             var user = new User
             {
                 Username = "admin",
@@ -72,7 +78,7 @@ public static class DbSeeder
             context.UserRoles.Add(new UserRole
             {
                 UserId = user.Id,
-                RoleId = adminRole.Id,
+                RoleId = adminRoleId,
             });
             context.SaveChanges();
         }
@@ -82,5 +88,16 @@ public static class DbSeeder
         var pluginAsms = new List<Assembly>();
         if (entryAsm != null) pluginAsms.Add(entryAsm);
         permissionSeed.SeedPermissions(pluginAsms);
+
+        // 5. admin 角色绑定全部菜单（角色-菜单主授权链路）
+        if (!context.RoleMenus.Any(rm => rm.RoleId == adminRoleId))
+        {
+            var allMenuIds = context.Menus.Select(m => m.Id).ToList();
+            var roleMenus = allMenuIds
+                .Select(menuId => new RoleMenu { RoleId = adminRoleId, MenuId = menuId })
+                .ToList();
+            context.RoleMenus.AddRange(roleMenus);
+            context.SaveChanges();
+        }
     }
 }

@@ -15,7 +15,7 @@ namespace DShop.Models
 
         public long UserId { get; set; }
 
-        public int RoleId { get; set; }
+        public long RoleId { get; set; }
 
         [ForeignKey(nameof(UserId))]
         public User? User { get; set; }

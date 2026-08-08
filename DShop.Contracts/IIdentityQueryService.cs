@@ -13,9 +13,9 @@ namespace DShop.Contracts
         List<Permission> GetUserPermissions(long userId);
         List<string> GetUserRoleCodes(long userId);
         List<Role> GetRoles();
-        List<int> GetUserRoleIds(long userId);
-        List<long> GetRoleMenus(int roleId);
-        List<long> GetRolePermissions(int roleId);
+        List<long> GetUserRoleIds(long userId);
+        List<long> GetRoleMenus(long roleId);
+        List<long> GetRolePermissions(long roleId);
 
         // ==================== 菜单查询 ====================
         List<MenuResponse> GetMenus(MenuQueryRequest query);

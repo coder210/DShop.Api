@@ -79,11 +79,28 @@ namespace DShop.AdminPlugin.Services
                 return result;
             }
 
-            var menuIdList = _context.UserMenus.Where(it => it.UserId == user.Id).Select(it => it.MenuId).ToList();
-            var permissionIdList = _context.UserPermissions.Where(it => it.UserId == user.Id).Select(it => it.PermissionId).ToList();
-            permissionIdList = permissionIdList.Distinct().ToList();
+            // 权限来源：角色权限(主) ∪ 用户额外权限(加成)
+            var roleIds = _context.UserRoles
+                .Where(ur => ur.UserId == user.Id)
+                .Select(ur => ur.RoleId)
+                .ToList();
 
-            var permissionCodeList = _context.Permissions.Where(it => permissionIdList.Contains(it.Id)).Select(it => it.PermissionCode).ToList();
+            var rolePermissionIds = _context.RolePermissions
+                .Where(rp => roleIds.Contains(rp.RoleId))
+                .Select(rp => rp.PermissionId)
+                .ToHashSet();
+
+            var userPermissionIds = _context.UserPermissions
+                .Where(up => up.UserId == user.Id)
+                .Select(up => up.PermissionId)
+                .ToHashSet();
+
+            var permissionIdList = rolePermissionIds.Union(userPermissionIds).ToList();
+
+            var permissionCodeList = _context.Permissions
+                .Where(it => permissionIdList.Contains(it.Id))
+                .Select(it => it.PermissionCode)
+                .ToList();
 
             string newToken = JwtHelper.GenerateJwtToken(user.Id.ToString(), user.Username, permissionCodeList.ToArray(), expireMinutes);
 
@@ -716,7 +733,7 @@ namespace DShop.AdminPlugin.Services
             }
         }
 
-        public int CreateRole(Role role, out string msg)
+        public long CreateRole(Role role, out string msg)
         {
             if (_context.Roles.Any(r => r.Code == role.Code))
             {
@@ -765,7 +782,7 @@ namespace DShop.AdminPlugin.Services
             return false;
         }
 
-        public bool DeleteRole(int id, out string msg)
+        public bool DeleteRole(long id, out string msg)
         {
             var existing = _context.Roles.Find(id);
             if (existing == null)
@@ -794,7 +811,7 @@ namespace DShop.AdminPlugin.Services
             return false;
         }
 
-        public bool BindRoleMenus(int roleId, List<long> menuIds)
+        public bool BindRoleMenus(long roleId, List<long> menuIds)
         {
             using var transaction = _context.Database.BeginTransaction();
             try
@@ -820,7 +837,7 @@ namespace DShop.AdminPlugin.Services
             }
         }
 
-        public bool BindRolePermissions(int roleId, List<long> permissionIds)
+        public bool BindRolePermissions(long roleId, List<long> permissionIds)
         {
             using var transaction = _context.Database.BeginTransaction();
             try

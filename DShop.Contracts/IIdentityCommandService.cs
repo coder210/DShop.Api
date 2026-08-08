@@ -25,11 +25,11 @@ namespace DShop.Contracts
         (bool Success, string Message) BindRoleList(long userId, List<int> roleIdList);
 
         // ==================== 角色管理 ====================
-        int CreateRole(Role role, out string msg);
+        long CreateRole(Role role, out string msg);
         bool UpdateRole(Role role, out string msg);
-        bool DeleteRole(int id, out string msg);
-        bool BindRoleMenus(int roleId, List<long> menuIds);
-        bool BindRolePermissions(int roleId, List<long> permissionIds);
+        bool DeleteRole(long id, out string msg);
+        bool BindRoleMenus(long roleId, List<long> menuIds);
+        bool BindRolePermissions(long roleId, List<long> permissionIds);
 
         // ==================== 菜单管理 ====================
         bool AddMenu(MenuCreateRequest request);

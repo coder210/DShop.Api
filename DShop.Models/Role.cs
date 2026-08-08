@@ -11,7 +11,7 @@ namespace DShop.Models
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         /// <summary>
         /// 角色编码，全局唯一，如 sale / sampler / admin
