@@ -1,4 +1,5 @@
 using DShop.Contracts;
+using DShop.PluginShared;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DShop.AdminPlugin.Controllers
@@ -15,6 +16,7 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         [HttpGet("GetList")]
+        [AuthorizePermission("audit-log:get:list", "获取审计日志列表")]
         public IActionResult GetList(
             [FromQuery] string? keyword,
             [FromQuery] string? action,
@@ -36,6 +38,7 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         [HttpGet("GetDetail/{id}")]
+        [AuthorizePermission("audit-log:get:detail", "获取审计日志详情")]
         public IActionResult GetDetail(long id)
         {
             try

@@ -30,7 +30,7 @@ namespace DShop.AdminPlugin.Controllers
         /// </summary>
         [HttpGet]
         [SwaggerOperation(Summary = "获取所有用户列表", Description = "获取所有用户列表")]
-        [AuthorizePermission("account-management:get:list", "获取所有用户列表")]
+        [AuthorizePermission("user-management:get:list", "获取所有用户列表")]
         public IActionResult GetList()
         {
             var userList = _identityQueryService.GetUserList();
@@ -54,7 +54,7 @@ namespace DShop.AdminPlugin.Controllers
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerOperation(Summary = "获取用户信息", Description = "根据id获取用户信息")]
-        [AuthorizePermission("account-management:get", "根据id获取用户信息")]
+        [AuthorizePermission("user-management:get", "根据id获取用户信息")]
         public IActionResult Get(long id)
         {
             if (_identityQueryService.GetUser(id, out User user, out string msg))
@@ -75,7 +75,7 @@ namespace DShop.AdminPlugin.Controllers
         /// 创建用户
         /// </summary>
         [SwaggerOperation(Summary = "创建用户", Description = "创建用户")]
-        [AuthorizePermission("account-management:create", "创建用户")]
+        [AuthorizePermission("user-management:create", "创建用户")]
         [HttpPost("Create")]
         public IActionResult Create([FromForm] string userName, [FromForm] string password)
         {
@@ -90,7 +90,7 @@ namespace DShop.AdminPlugin.Controllers
         /// 修改用户信息
         /// </summary>
         [SwaggerOperation(Summary = "修改用户信息", Description = "修改用户信息")]
-        [AuthorizePermission("account-management:update", "修改用户信息")]
+        [AuthorizePermission("user-management:update", "修改用户信息")]
         [HttpPost("Update/{id}")]
         public IActionResult Update(long id, [FromForm] string? avatar, [FromForm] string? sex, [FromForm] string? email)
         {
@@ -110,7 +110,7 @@ namespace DShop.AdminPlugin.Controllers
         /// <summary>
         /// 删除用户
         /// </summary>
-        [AuthorizePermission("account-management:delete", "根据id删除用户")]
+        [AuthorizePermission("user-management:delete", "根据id删除用户")]
         [HttpPost("Delete/{id}")]
         [SwaggerOperation(Summary = "删除用户", Description = "根据id删除用户")]
         public IActionResult Delete(long id)
@@ -123,10 +123,33 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         /// <summary>
+        /// 修改用户密码
+        /// </summary>
+        [SwaggerOperation(Summary = "修改用户密码", Description = "重置/修改指定用户的登录密码")]
+        [AuthorizePermission("user-management:change-password", "修改用户密码")]
+        [HttpPost("ChangePassword/{id}")]
+        public IActionResult ChangePassword(long id, [FromForm] string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "新密码不能为空" });
+            }
+            if (newPassword.Length < 6)
+            {
+                return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "密码长度至少为6位" });
+            }
+            if (_identityCommandService.UpdatePassword(id, newPassword, string.Empty, out string msg))
+            {
+                return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "密码修改成功" });
+            }
+            return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "密码修改失败:" + msg });
+        }
+
+        /// <summary>
         /// 获取用户的授权菜单id列表
         /// </summary>
         [SwaggerOperation(Summary = "用户的授权菜单id(列表)", Description = "获取用户的授权菜单id(列表)")]
-        [AuthorizePermission("account-management:binding:menus", "获取用户的授权菜单id(列表)")]
+        [AuthorizePermission("user-management:binding:menus", "获取用户的授权菜单id(列表)")]
         [HttpGet("{userId}/Menus")]
         public IActionResult GetBindingMenusList(long userId)
         {
@@ -139,7 +162,7 @@ namespace DShop.AdminPlugin.Controllers
         /// 用户绑定菜单(多个)
         /// </summary>
         [SwaggerOperation(Summary = "用户绑定菜单", Description = "用户绑定菜单,多项menuIds以逗号分隔")]
-        [AuthorizePermission("account-management:menus:bind", "用户绑定菜单")]
+        [AuthorizePermission("user-management:menus:bind", "用户绑定菜单")]
         [HttpPost("{userId}/Menus/Bind")]
         public IActionResult BindMenus(long userId, [FromForm] string menuIds)
         {
@@ -157,7 +180,7 @@ namespace DShop.AdminPlugin.Controllers
         /// 获取用户绑定权限id列表
         /// </summary>
         [SwaggerOperation(Summary = "获取用户绑定权限id列表", Description = "获取用户绑定权限id列表")]
-        [AuthorizePermission("account-management:binding:permissions", "获取用户绑定权限id列表")]
+        [AuthorizePermission("user-management:binding:permissions", "获取用户绑定权限id列表")]
         [HttpGet("{userId}/Permissions")]
         public IActionResult GetBindingPermissionsList(long userId)
         {
@@ -170,7 +193,7 @@ namespace DShop.AdminPlugin.Controllers
         /// 用户绑定权限(多个)
         /// </summary>
         [SwaggerOperation(Summary = "用户绑定权限", Description = "用户绑定权限,多项permissionIds以逗号分隔")]
-        [AuthorizePermission("account-management:permissions:bind", "用户绑定权限")]
+        [AuthorizePermission("user-management:permissions:bind", "用户绑定权限")]
         [HttpPost("{userId}/Permissions/Bind")]
         public IActionResult BindPermissions(long userId, [FromForm] string permissionIds)
         {
@@ -180,7 +203,7 @@ namespace DShop.AdminPlugin.Controllers
             var (success, message) = _identityCommandService.BindPermissionList(userId, permissionIdList);
             if (success)
             {
-                return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "绑定成功" });
+                return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = message });
             }
             return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = message });
         }
@@ -189,7 +212,7 @@ namespace DShop.AdminPlugin.Controllers
         /// 获取所有权限列表（用于绑定）
         /// </summary>
         [SwaggerOperation(Summary = "获取所有权限列表", Description = "获取所有权限列表")]
-        [AuthorizePermission("account-management:permissions:list", "获取所有权限列表")]
+        [AuthorizePermission("user-management:permissions:list", "获取所有权限列表")]
         [HttpGet("Permissions")]
         public IActionResult GetAllPermissions()
         {
@@ -209,6 +232,56 @@ namespace DShop.AdminPlugin.Controllers
                 });
             }
             return Ok(new ApiResponse { Code = 200, Data = permissionResponses, Msg = "获取成功" });
+        }
+
+        /// <summary>
+        /// 获取所有角色列表（用于绑定）
+        /// </summary>
+        [SwaggerOperation(Summary = "获取所有角色列表", Description = "获取所有角色列表")]
+        [AuthorizePermission("user-management:roles:list", "获取所有角色列表")]
+        [HttpGet("Roles")]
+        public IActionResult GetAllRoles()
+        {
+            var roles = _identityQueryService.GetRoles();
+            var roleResponses = roles.Select(r => new
+            {
+                id = r.Id,
+                code = r.Code,
+                name = r.Name,
+                description = r.Description,
+            }).ToList();
+            return Ok(new ApiResponse { Code = 200, Data = roleResponses, Msg = "获取成功" });
+        }
+
+        /// <summary>
+        /// 获取用户已绑定角色id列表
+        /// </summary>
+        [SwaggerOperation(Summary = "获取用户已绑定角色id列表", Description = "获取用户已绑定角色id列表")]
+        [AuthorizePermission("user-management:binding:roles", "获取用户已绑定角色id列表")]
+        [HttpGet("{userId}/Roles")]
+        public IActionResult GetBindingRolesList(long userId)
+        {
+            var roleIdList = _identityQueryService.GetUserRoleIds(userId);
+            return Ok(new ApiResponse { Code = 200, Data = roleIdList, Msg = "获取成功" });
+        }
+
+        /// <summary>
+        /// 用户绑定角色(多个，覆盖式)
+        /// </summary>
+        [SwaggerOperation(Summary = "用户绑定角色", Description = "用户绑定角色,多项roleIds以逗号分隔")]
+        [AuthorizePermission("user-management:roles:bind", "用户绑定角色")]
+        [HttpPost("{userId}/Roles/Bind")]
+        public IActionResult BindRoles(long userId, [FromForm] string roleIds)
+        {
+            var roleIdList = roleIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                   .Select(id => Convert.ToInt64(id))
+                                   .ToList();
+            var (success, message) = _identityCommandService.BindRoleList(userId, roleIdList);
+            if (success)
+            {
+                return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = message });
+            }
+            return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = message });
         }
     }
 }

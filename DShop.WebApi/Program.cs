@@ -34,6 +34,10 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<GlobalExceptionFilter>();
     options.Filters.Add<OperationLogFilter>();
     options.Filters.Add<PermissionAuthorizationFilter>();
+}).AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 builder.Services.AddEndpointsApiExplorer();
 

@@ -13,21 +13,43 @@ public static class DbSeeder
 {
     public static void Seed(DatabaseContext context, IPermissionSeedService permissionSeed)
     {
-        // 1. 默认菜单（仅库为空时插入）
-        if (!context.Menus.Any())
+        // 1. 默认菜单（幂等：确保存在并修正 path/icon，使侧边栏跳转与前端路由一致）
+        var defaultMenus = new List<(string Name, string Path, string Icon, string Controller, int SortOrder)>
         {
-            var menus = new List<Menu>
+            ("首页", "/home", "HomeFilled", "", 1),
+            ("用户管理", "/home/user-management", "User", "UserManagement", 2),
+            ("角色管理", "/home/role-management", "UserFilled", "RoleManagement", 3),
+            ("菜单管理", "/home/menu-management", "Menu", "MenuManagement", 4),
+            ("模板管理", "/home/template-management", "Document", "TemplateManagement", 5),
+            ("审计日志", "/home/audit-log-management", "Bell", "AuditLog", 6),
+        };
+
+        foreach (var dm in defaultMenus)
+        {
+            var existing = context.Menus.FirstOrDefault(m => m.Name == dm.Name);
+            if (existing == null)
             {
-                new Menu { Name = "首页", Path = "/home", Icon = "HomeFilled", ParentId = 0, Controller = "", SortOrder = 1, CreatedAt = DateTime.Now },
-                new Menu { Name = "用户管理", Path = "/home/account-management", Icon = "User", ParentId = 0, Controller = "UserManagement", SortOrder = 2, CreatedAt = DateTime.Now },
-                new Menu { Name = "角色管理", Path = "/home/role-management", Icon = "UserFilled", ParentId = 0, Controller = "RoleManagement", SortOrder = 3, CreatedAt = DateTime.Now },
-                new Menu { Name = "菜单管理", Path = "/home/menu-management", Icon = "Menu", ParentId = 0, Controller = "MenuManagement", SortOrder = 4, CreatedAt = DateTime.Now },
-                new Menu { Name = "模板管理", Path = "/home/template-management", Icon = "Document", ParentId = 0, Controller = "TemplateManagement", SortOrder = 5, CreatedAt = DateTime.Now },
-                new Menu { Name = "审计日志", Path = "/home/audit-log", Icon = "Bell", ParentId = 0, Controller = "AuditLogManagement", SortOrder = 6, CreatedAt = DateTime.Now },
-            };
-            context.Menus.AddRange(menus);
-            context.SaveChanges();
+                context.Menus.Add(new Menu
+                {
+                    Name = dm.Name,
+                    Path = dm.Path,
+                    Icon = dm.Icon,
+                    Controller = dm.Controller,
+                    ParentId = 0,
+                    SortOrder = dm.SortOrder,
+                    CreatedAt = DateTime.Now
+                });
+            }
+            else
+            {
+                // 已存在则修正 path/icon/controller（解决旧数据 path 不匹配导致跳转 404）
+                existing.Path = dm.Path;
+                existing.Icon = dm.Icon;
+                existing.Controller = dm.Controller;
+                existing.SortOrder = dm.SortOrder;
+            }
         }
+        context.SaveChanges();
 
         // 2. 内置角色 admin（权限种子依赖该角色存在）
         long adminRoleId = 0;

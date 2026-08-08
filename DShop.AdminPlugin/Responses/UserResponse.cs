@@ -14,5 +14,11 @@ namespace DShop.AdminPlugin.Responses
         public string Sex { get; set; }
         [JsonPropertyName("email")]
         public string Email { get; set; }
+        [JsonPropertyName("mobilePhoneNumber")]
+        public string MobilePhoneNumber { get; set; }
+        [JsonPropertyName("roleNames")]
+        public List<string> RoleNames { get; set; }
+        [JsonPropertyName("createdAt")]
+        public DateTime CreatedAt { get; set; }
     }
 }

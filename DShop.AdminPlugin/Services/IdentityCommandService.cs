@@ -768,7 +768,6 @@ namespace DShop.AdminPlugin.Services
                 return false;
             }
 
-            existing.Code = role.Code;
             existing.Name = role.Name;
             existing.Description = role.Description;
             existing.SortOrder = role.SortOrder;

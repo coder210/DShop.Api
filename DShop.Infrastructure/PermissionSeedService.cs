@@ -213,9 +213,9 @@ public class PermissionSeedService : IPermissionSeedService
         {
             // 管理员：系统全部权限（首页 + 账号/角色/菜单管理 + 模板 + 审计）
             ["admin"] = new[] { "Home", "UserManagement", "RoleManagement", "MenuManagement",
-                "TemplateManagement", "AuditLogManagement" },
+                "TemplateManagement", "AuditLog" },
             // 总工：查看类权限（首页 + 模板 + 审计）
-            ["chief-engineer"] = new[] { "Home", "TemplateManagement", "AuditLogManagement" },
+            ["chief-engineer"] = new[] { "Home", "TemplateManagement", "AuditLog" },
         };
 
         foreach (var (roleCode, modules) in rolePermissionModules)

@@ -9,7 +9,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace DShop.AdminPlugin.Controllers
 {
     /// <summary>
-    /// 角色管理页
+    /// 角色管理 - 角色CRUD、角色绑定菜单/权限
     /// </summary>
     [Route("api/admin/[controller]")]
     [ApiController]
@@ -25,133 +25,200 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         /// <summary>
-        /// 获取角色列表
+        /// 角色列表
         /// </summary>
-        [SwaggerOperation(Summary = "获取角色列表", Description = "获取全部角色")]
+        [HttpGet]
+        [SwaggerOperation(Summary = "角色列表", Description = "获取所有角色")]
         [AuthorizePermission("role-management:list", "获取角色列表")]
-        [HttpGet("List")]
         public IActionResult GetList()
         {
-            var result = _identityQueryService.GetRoles();
-            return Ok(new ApiResponse { Code = 200, Data = result, Msg = "获取成功" });
+            var roles = _identityQueryService.GetRoles();
+            var data = roles.Select(r => new
+            {
+                id = r.Id,
+                code = r.Code,
+                name = r.Name,
+                description = r.Description,
+                sortOrder = r.SortOrder,
+                isSystem = r.IsSystem
+            }).ToList();
+            return Ok(new ApiResponse { Code = 200, Data = data, Msg = "获取成功" });
+        }
+
+        /// <summary>
+        /// 角色详情（含已绑定菜单/权限id）
+        /// </summary>
+        [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "角色详情", Description = "获取角色及其菜单/权限")]
+        [AuthorizePermission("role-management:detail", "获取角色详情")]
+        public IActionResult Get(int id)
+        {
+            var role = _identityQueryService.GetRoles().FirstOrDefault(r => r.Id == id);
+            if (role == null)
+                return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "角色不存在" });
+
+            var data = new
+            {
+                id = role.Id,
+                code = role.Code,
+                name = role.Name,
+                description = role.Description,
+                sortOrder = role.SortOrder,
+                isSystem = role.IsSystem,
+                menuIds = _identityQueryService.GetRoleMenus(id),
+                permissionIds = _identityQueryService.GetRolePermissions(id)
+            };
+            return Ok(new ApiResponse { Code = 200, Data = data, Msg = "获取成功" });
         }
 
         /// <summary>
         /// 创建角色
         /// </summary>
-        [SwaggerOperation(Summary = "创建角色", Description = "新增一个角色")]
-        [AuthorizePermission("role-management:create", "创建角色")]
         [HttpPost("Create")]
-        public IActionResult Create([FromBody] Role role)
+        [SwaggerOperation(Summary = "创建角色", Description = "创建角色")]
+        [AuthorizePermission("role-management:create", "创建角色")]
+        public IActionResult Create([FromForm] string code, [FromForm] string name,
+            [FromForm] string? description, [FromForm] int sortOrder = 0)
         {
+            var role = new Role
+            {
+                Code = code,
+                Name = name,
+                Description = description ?? string.Empty,
+                SortOrder = sortOrder,
+                IsSystem = false
+            };
             var newId = _identityCommandService.CreateRole(role, out string msg);
-            if (newId <= 0)
-                return Ok(new ApiResponse { Code = 400, Data = null, Msg = msg });
-            return Ok(new ApiResponse { Code = 200, Data = newId, Msg = msg });
+            if (newId > 0)
+                return Ok(new ApiResponse { Code = 200, Data = new { id = newId }, Msg = msg });
+            return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = msg });
         }
 
         /// <summary>
-        /// 更新角色
+        /// 修改角色
         /// </summary>
-        [SwaggerOperation(Summary = "更新角色", Description = "修改角色信息")]
-        [AuthorizePermission("role-management:update", "更新角色")]
-        [HttpPost("Update")]
-        public IActionResult Update([FromBody] Role role)
+        [HttpPost("Update/{id}")]
+        [SwaggerOperation(Summary = "修改角色", Description = "修改角色")]
+        [AuthorizePermission("role-management:update", "修改角色")]
+        public IActionResult Update(int id, [FromForm] string code, [FromForm] string name,
+            [FromForm] string? description, [FromForm] int sortOrder = 0)
         {
-            var success = _identityCommandService.UpdateRole(role, out string msg);
-            if (!success)
-                return Ok(new ApiResponse { Code = 400, Data = null, Msg = msg });
-            return Ok(new ApiResponse { Code = 200, Data = null, Msg = msg });
+            var role = new Role
+            {
+                Id = id,
+                Code = code,
+                Name = name,
+                Description = description ?? string.Empty,
+                SortOrder = sortOrder,
+                IsSystem = false
+            };
+            if (_identityCommandService.UpdateRole(role, out string msg))
+                return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = msg });
+            return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = msg });
         }
 
         /// <summary>
         /// 删除角色
         /// </summary>
-        [SwaggerOperation(Summary = "删除角色", Description = "删除指定角色")]
+        [HttpPost("Delete/{id}")]
+        [SwaggerOperation(Summary = "删除角色", Description = "删除角色")]
         [AuthorizePermission("role-management:delete", "删除角色")]
-        [HttpPost("Delete")]
-        public IActionResult Delete([FromQuery] long id)
+        public IActionResult Delete(int id)
         {
-            var success = _identityCommandService.DeleteRole(id, out string msg);
-            if (!success)
-                return Ok(new ApiResponse { Code = 400, Data = null, Msg = msg });
-            return Ok(new ApiResponse { Code = 200, Data = null, Msg = msg });
+            if (_identityCommandService.DeleteRole(id, out string msg))
+                return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = msg });
+            return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = msg });
         }
 
         /// <summary>
-        /// 绑定用户角色
+        /// 角色已绑定菜单id列表
         /// </summary>
-        [SwaggerOperation(Summary = "绑定用户角色", Description = "为用户分配角色")]
-        [AuthorizePermission("role-management:bind-user", "绑定用户角色")]
-        [HttpPost("BindUserRoles")]
-        public IActionResult BindUserRoles([FromQuery] long userId, [FromBody] List<long> roleIds)
+        [HttpGet("{id}/Menus")]
+        [SwaggerOperation(Summary = "角色菜单", Description = "获取角色已绑定菜单id")]
+        [AuthorizePermission("role-management:menus", "获取角色菜单")]
+        public IActionResult GetMenus(int id)
         {
-            _identityCommandService.BindRoleList(userId, roleIds);
-            return Ok(new ApiResponse { Code = 200, Data = null, Msg = "绑定成功" });
+            var menuIds = _identityQueryService.GetRoleMenus(id);
+            return Ok(new ApiResponse { Code = 200, Data = menuIds, Msg = "获取成功" });
         }
 
         /// <summary>
-        /// 绑定角色菜单
+        /// 角色绑定菜单
         /// </summary>
-        [SwaggerOperation(Summary = "绑定角色菜单", Description = "为角色分配菜单")]
-        [AuthorizePermission("role-management:bind-menu", "绑定角色菜单")]
-        [HttpPost("BindRoleMenus")]
-        public IActionResult BindRoleMenus([FromQuery] long roleId, [FromBody] List<long> menuIds)
+        [HttpPost("{id}/Menus/Bind")]
+        [SwaggerOperation(Summary = "角色绑定菜单", Description = "角色绑定菜单,多项menuIds以逗号分隔")]
+        [AuthorizePermission("role-management:menus-bind", "角色绑定菜单")]
+        public IActionResult BindMenus(int id, [FromForm] string menuIds)
         {
-            var success = _identityCommandService.BindRoleMenus(roleId, menuIds);
-            if (!success)
-                return Ok(new ApiResponse { Code = 400, Data = null, Msg = "绑定失败" });
-            return Ok(new ApiResponse { Code = 200, Data = null, Msg = "绑定成功" });
+            var menuIdList = menuIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                    .Select(m => Convert.ToInt64(m))
+                                    .ToList();
+            if (_identityCommandService.BindRoleMenus(id, menuIdList))
+                return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "绑定成功" });
+            return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "绑定失败" });
         }
 
         /// <summary>
-        /// 绑定角色权限
+        /// 角色已绑定权限id列表
         /// </summary>
-        [SwaggerOperation(Summary = "绑定角色权限", Description = "为角色分配操作权限")]
-        [AuthorizePermission("role-management:bind-permission", "绑定角色权限")]
-        [HttpPost("BindRolePermissions")]
-        public IActionResult BindRolePermissions([FromQuery] long roleId, [FromBody] List<long> permissionIds)
+        [HttpGet("{id}/Permissions")]
+        [SwaggerOperation(Summary = "角色权限", Description = "获取角色已绑定权限id")]
+        [AuthorizePermission("role-management:permissions", "获取角色权限")]
+        public IActionResult GetPermissions(int id)
         {
-            var success = _identityCommandService.BindRolePermissions(roleId, permissionIds);
-            if (!success)
-                return Ok(new ApiResponse { Code = 400, Data = null, Msg = "绑定失败" });
-            return Ok(new ApiResponse { Code = 200, Data = null, Msg = "绑定成功" });
+            var permissionIds = _identityQueryService.GetRolePermissions(id);
+            return Ok(new ApiResponse { Code = 200, Data = permissionIds, Msg = "获取成功" });
         }
 
         /// <summary>
-        /// 获取角色菜单
+        /// 角色绑定权限
         /// </summary>
-        [SwaggerOperation(Summary = "获取角色菜单", Description = "获取角色拥有的菜单")]
-        [AuthorizePermission("role-management:list", "获取角色列表")]
-        [HttpGet("RoleMenus")]
-        public IActionResult GetRoleMenus([FromQuery] long roleId)
+        [HttpPost("{id}/Permissions/Bind")]
+        [SwaggerOperation(Summary = "角色绑定权限", Description = "角色绑定权限,多项permissionIds以逗号分隔")]
+        [AuthorizePermission("role-management:permissions-bind", "角色绑定权限")]
+        public IActionResult BindPermissions(int id, [FromForm] string permissionIds)
         {
-            var result = _identityQueryService.GetRoleMenus(roleId);
-            return Ok(new ApiResponse { Code = 200, Data = result, Msg = "获取成功" });
+            var permissionIdList = permissionIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                    .Select(p => Convert.ToInt64(p))
+                                    .ToList();
+            if (_identityCommandService.BindRolePermissions(id, permissionIdList))
+                return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "绑定成功" });
+            return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "绑定失败" });
         }
 
         /// <summary>
-        /// 获取角色权限
+        /// 菜单树（供角色分配菜单）
         /// </summary>
-        [SwaggerOperation(Summary = "获取角色权限", Description = "获取角色拥有的操作权限")]
-        [AuthorizePermission("role-management:list", "获取角色列表")]
-        [HttpGet("RolePermissions")]
-        public IActionResult GetRolePermissions([FromQuery] long roleId)
+        [HttpGet("Menus/Tree")]
+        [SwaggerOperation(Summary = "菜单树", Description = "获取菜单树")]
+        [AuthorizePermission("role-management:menus-tree", "获取菜单树")]
+        public IActionResult GetMenuTree()
         {
-            var result = _identityQueryService.GetRolePermissions(roleId);
-            return Ok(new ApiResponse { Code = 200, Data = result, Msg = "获取成功" });
+            var tree = _identityQueryService.GetMenuTree();
+            return Ok(new ApiResponse { Code = 200, Data = tree, Msg = "获取成功" });
         }
 
         /// <summary>
-        /// 获取用户角色
+        /// 所有权限（供角色分配权限）
         /// </summary>
-        [SwaggerOperation(Summary = "获取用户角色", Description = "获取用户拥有的角色")]
-        [AuthorizePermission("role-management:list", "获取角色列表")]
-        [HttpGet("UserRoles")]
-        public IActionResult GetUserRoles([FromQuery] long userId)
+        [HttpGet("Permissions/All")]
+        [SwaggerOperation(Summary = "所有权限", Description = "获取所有权限")]
+        [AuthorizePermission("role-management:permissions-all", "获取所有权限")]
+        public IActionResult GetAllPermissions()
         {
-            var roleIds = _identityQueryService.GetUserRoleIds(userId);
-            return Ok(new ApiResponse { Code = 200, Data = roleIds, Msg = "获取成功" });
+            var permissions = _identityQueryService.GetPermissions()
+                .Select(p => new
+                {
+                    id = p.Id,
+                    permissionCode = p.PermissionCode,
+                    description = p.Description,
+                    module = p.Module,
+                    endpoint = p.Endpoint,
+                    apiPath = p.ApiPath,
+                    remark = p.Remark,
+                    sortOrder = p.SortOrder
+                }).ToList();
+            return Ok(new ApiResponse { Code = 200, Data = permissions, Msg = "获取成功" });
         }
     }
 }

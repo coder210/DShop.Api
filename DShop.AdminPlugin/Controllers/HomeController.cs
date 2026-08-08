@@ -1,9 +1,8 @@
+using DShop.AdminPlugin.Responses;
 using DShop.Contracts;
 using DShop.Contracts.Dto;
-using DShop.Infrastructure;
-using DShop.PluginShared;
-using DShop.AdminPlugin.Responses;
 using DShop.Models;
+using DShop.PluginShared;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
@@ -130,8 +129,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "修改当前用户信息", Description = "修改当前登录用户的个人信息")]
         [AuthorizePermission("home:update-user", "修改当前用户信息")]
         [HttpPost("UpdateUser")]
-        public IActionResult UpdateUser([FromForm] string? avatar, [FromForm] string? sex, [FromForm] string? email,
-            [FromForm] string? mobilePhoneNumber, [FromForm] string? idCard)
+        public IActionResult UpdateUser([FromForm] string? avatar, [FromForm] string? sex, [FromForm] string? email)
         {
             var userId = Convert.ToInt64(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             var userRequest = new UpdateUserRequest()
