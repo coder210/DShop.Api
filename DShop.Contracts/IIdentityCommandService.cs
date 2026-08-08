@@ -22,7 +22,7 @@ namespace DShop.Contracts
         (bool Success, string Message) BindPermissionList(long userId, List<long> permissionIdList);
 
         // ==================== 用户-角色绑定 ====================
-        (bool Success, string Message) BindRoleList(long userId, List<int> roleIdList);
+        (bool Success, string Message) BindRoleList(long userId, List<long> roleIdList);
 
         // ==================== 角色管理 ====================
         long CreateRole(Role role, out string msg);

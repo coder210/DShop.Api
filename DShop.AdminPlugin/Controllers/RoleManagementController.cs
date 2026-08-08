@@ -70,7 +70,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "删除角色", Description = "删除指定角色")]
         [AuthorizePermission("role-management:delete", "删除角色")]
         [HttpPost("Delete")]
-        public IActionResult Delete([FromQuery] int id)
+        public IActionResult Delete([FromQuery] long id)
         {
             var success = _identityCommandService.DeleteRole(id, out string msg);
             if (!success)
@@ -84,7 +84,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "绑定用户角色", Description = "为用户分配角色")]
         [AuthorizePermission("role-management:bind-user", "绑定用户角色")]
         [HttpPost("BindUserRoles")]
-        public IActionResult BindUserRoles([FromQuery] long userId, [FromBody] List<int> roleIds)
+        public IActionResult BindUserRoles([FromQuery] long userId, [FromBody] List<long> roleIds)
         {
             _identityCommandService.BindRoleList(userId, roleIds);
             return Ok(new ApiResponse { Code = 200, Data = null, Msg = "绑定成功" });
@@ -96,7 +96,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "绑定角色菜单", Description = "为角色分配菜单")]
         [AuthorizePermission("role-management:bind-menu", "绑定角色菜单")]
         [HttpPost("BindRoleMenus")]
-        public IActionResult BindRoleMenus([FromQuery] int roleId, [FromBody] List<long> menuIds)
+        public IActionResult BindRoleMenus([FromQuery] long roleId, [FromBody] List<long> menuIds)
         {
             var success = _identityCommandService.BindRoleMenus(roleId, menuIds);
             if (!success)
@@ -110,7 +110,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "绑定角色权限", Description = "为角色分配操作权限")]
         [AuthorizePermission("role-management:bind-permission", "绑定角色权限")]
         [HttpPost("BindRolePermissions")]
-        public IActionResult BindRolePermissions([FromQuery] int roleId, [FromBody] List<long> permissionIds)
+        public IActionResult BindRolePermissions([FromQuery] long roleId, [FromBody] List<long> permissionIds)
         {
             var success = _identityCommandService.BindRolePermissions(roleId, permissionIds);
             if (!success)
@@ -124,7 +124,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "获取角色菜单", Description = "获取角色拥有的菜单")]
         [AuthorizePermission("role-management:list", "获取角色列表")]
         [HttpGet("RoleMenus")]
-        public IActionResult GetRoleMenus([FromQuery] int roleId)
+        public IActionResult GetRoleMenus([FromQuery] long roleId)
         {
             var result = _identityQueryService.GetRoleMenus(roleId);
             return Ok(new ApiResponse { Code = 200, Data = result, Msg = "获取成功" });
@@ -136,7 +136,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "获取角色权限", Description = "获取角色拥有的操作权限")]
         [AuthorizePermission("role-management:list", "获取角色列表")]
         [HttpGet("RolePermissions")]
-        public IActionResult GetRolePermissions([FromQuery] int roleId)
+        public IActionResult GetRolePermissions([FromQuery] long roleId)
         {
             var result = _identityQueryService.GetRolePermissions(roleId);
             return Ok(new ApiResponse { Code = 200, Data = result, Msg = "获取成功" });

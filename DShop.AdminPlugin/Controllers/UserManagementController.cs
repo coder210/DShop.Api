@@ -141,7 +141,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "用户绑定菜单", Description = "用户绑定菜单,多项menuIds以逗号分隔")]
         [AuthorizePermission("account-management:menus:bind", "用户绑定菜单")]
         [HttpPost("{userId}/Menus/Bind")]
-        public IActionResult BindMenus(int userId, [FromForm] string menuIds)
+        public IActionResult BindMenus(long userId, [FromForm] string menuIds)
         {
             var menuIdList = menuIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
                                       .Select(id => Convert.ToInt64(id))
@@ -159,7 +159,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "获取用户绑定权限id列表", Description = "获取用户绑定权限id列表")]
         [AuthorizePermission("account-management:binding:permissions", "获取用户绑定权限id列表")]
         [HttpGet("{userId}/Permissions")]
-        public IActionResult GetBindingPermissionsList(int userId)
+        public IActionResult GetBindingPermissionsList(long userId)
         {
             var permissions = _identityQueryService.GetUserPermissions(userId);
             var permissionIdList = permissions.Select(it => it.Id).ToList();
@@ -172,7 +172,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "用户绑定权限", Description = "用户绑定权限,多项permissionIds以逗号分隔")]
         [AuthorizePermission("account-management:permissions:bind", "用户绑定权限")]
         [HttpPost("{userId}/Permissions/Bind")]
-        public IActionResult BindPermissions(int userId, [FromForm] string permissionIds)
+        public IActionResult BindPermissions(long userId, [FromForm] string permissionIds)
         {
             var permissionIdList = permissionIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
                                       .Select(id => Convert.ToInt64(id))

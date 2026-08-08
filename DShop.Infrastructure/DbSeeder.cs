@@ -19,12 +19,11 @@ public static class DbSeeder
             var menus = new List<Menu>
             {
                 new Menu { Name = "首页", Path = "/home", Icon = "HomeFilled", ParentId = 0, Controller = "", SortOrder = 1, CreatedAt = DateTime.Now },
-                new Menu { Name = "系统管理", Path = "/system", Icon = "Setting", ParentId = 0, Controller = "", SortOrder = 2, CreatedAt = DateTime.Now },
-                new Menu { Name = "用户管理", Path = "/AccountManagement", Icon = "User", ParentId = 0, Controller = "UserManagement", SortOrder = 3, CreatedAt = DateTime.Now },
-                new Menu { Name = "角色管理", Path = "/RoleManagement", Icon = "UserFilled", ParentId = 0, Controller = "RoleManagement", SortOrder = 4, CreatedAt = DateTime.Now },
-                new Menu { Name = "菜单管理", Path = "/MenuManagement", Icon = "Menu", ParentId = 0, Controller = "MenuManagement", SortOrder = 5, CreatedAt = DateTime.Now },
-                new Menu { Name = "模板管理", Path = "/TemplateManagement", Icon = "Document", ParentId = 0, Controller = "TemplateManagement", SortOrder = 6, CreatedAt = DateTime.Now },
-                new Menu { Name = "审计日志", Path = "/AuditLog", Icon = "Bell", ParentId = 0, Controller = "AuditLogManagement", SortOrder = 7, CreatedAt = DateTime.Now },
+                new Menu { Name = "用户管理", Path = "/home/account-management", Icon = "User", ParentId = 0, Controller = "UserManagement", SortOrder = 2, CreatedAt = DateTime.Now },
+                new Menu { Name = "角色管理", Path = "/home/role-management", Icon = "UserFilled", ParentId = 0, Controller = "RoleManagement", SortOrder = 3, CreatedAt = DateTime.Now },
+                new Menu { Name = "菜单管理", Path = "/home/menu-management", Icon = "Menu", ParentId = 0, Controller = "MenuManagement", SortOrder = 4, CreatedAt = DateTime.Now },
+                new Menu { Name = "模板管理", Path = "/home/template-management", Icon = "Document", ParentId = 0, Controller = "TemplateManagement", SortOrder = 5, CreatedAt = DateTime.Now },
+                new Menu { Name = "审计日志", Path = "/home/audit-log", Icon = "Bell", ParentId = 0, Controller = "AuditLogManagement", SortOrder = 6, CreatedAt = DateTime.Now },
             };
             context.Menus.AddRange(menus);
             context.SaveChanges();

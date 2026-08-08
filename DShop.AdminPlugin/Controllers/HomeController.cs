@@ -34,7 +34,7 @@ namespace DShop.AdminPlugin.Controllers
         [HttpGet("GetUser")]
         public IActionResult GetUser()
         {
-            var userId = Convert.ToInt32(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = Convert.ToInt64(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             if (_identityQueryService.GetUser(userId, out User user, out string msg))
             {
                 var userViewModel = new UserResponse()
@@ -57,7 +57,7 @@ namespace DShop.AdminPlugin.Controllers
         [HttpGet("GetMenus")]
         public IActionResult GetMenus()
         {
-            var userId = Convert.ToInt32(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = Convert.ToInt64(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             var menus = _identityQueryService.GetUserMenus(userId);
 
             var topMenus = menus.Where(it => it.ParentId == 0).OrderBy(it => it.SortOrder).ToList();
@@ -101,7 +101,7 @@ namespace DShop.AdminPlugin.Controllers
         [HttpPost("UpdatePassword")]
         public IActionResult UpdatePassword([FromForm] string newPassword, [FromForm] string captcha)
         {
-            var userId = Convert.ToInt32(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = Convert.ToInt64(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             if (_identityCommandService.UpdatePassword(userId, newPassword, captcha, out string msg))
             {
                 return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "修改成功" });
@@ -116,7 +116,7 @@ namespace DShop.AdminPlugin.Controllers
         [HttpPost("Logout")]
         public IActionResult Logout()
         {
-            var userId = Convert.ToInt32(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = Convert.ToInt64(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             if (_identityCommandService.Logout(userId, out string msg))
             {
                 return Ok(new ApiResponse { Code = 200, Data = userId, Msg = "登出成功" });
@@ -133,7 +133,7 @@ namespace DShop.AdminPlugin.Controllers
         public IActionResult UpdateUser([FromForm] string? avatar, [FromForm] string? sex, [FromForm] string? email,
             [FromForm] string? mobilePhoneNumber, [FromForm] string? idCard)
         {
-            var userId = Convert.ToInt32(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = Convert.ToInt64(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             var userRequest = new UpdateUserRequest()
             {
                 AvatarData = avatar ?? string.Empty,

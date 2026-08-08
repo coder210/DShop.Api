@@ -707,7 +707,7 @@ namespace DShop.AdminPlugin.Services
 
         // ==================== 角色管理 ====================
 
-        public (bool Success, string Message) BindRoleList(long userId, List<int> roleIdList)
+        public (bool Success, string Message) BindRoleList(long userId, List<long> roleIdList)
         {
             using var transaction = _context.Database.BeginTransaction();
             try
