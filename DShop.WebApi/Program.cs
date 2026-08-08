@@ -122,15 +122,30 @@ builder.Services.AddScoped<ITokenValidator, TokenValidator>();
 builder.Services.AddScoped<IPermissionSeedService, PermissionSeedService>();
 
 // --- EF Core DbContext ---
+// 根据连接字符串自动选择数据库提供程序：
+//   含 .db / .sqlite / :memory: 且非服务器地址 -> SQLite
+//   其它（如 "Data Source=host,port;..."） -> SQL Server
 builder.Services.AddDbContext<DatabaseContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseSqlServer(connectionString,
-        sqlServerOptions =>
-        {
-            sqlServerOptions.EnableRetryOnFailure(3);
-            sqlServerOptions.CommandTimeout(30);
-        });
+    var isSqlite = !string.IsNullOrEmpty(connectionString)
+        && (connectionString.Contains(".db", StringComparison.OrdinalIgnoreCase)
+            || connectionString.Contains(".sqlite", StringComparison.OrdinalIgnoreCase)
+            || connectionString.Contains(":memory:", StringComparison.OrdinalIgnoreCase));
+
+    if (isSqlite)
+    {
+        options.UseSqlite(connectionString);
+    }
+    else
+    {
+        options.UseSqlServer(connectionString,
+            sqlServerOptions =>
+            {
+                sqlServerOptions.EnableRetryOnFailure(3);
+                sqlServerOptions.CommandTimeout(30);
+            });
+    }
 }, ServiceLifetime.Scoped);
 
 // --- Swagger ---
@@ -146,6 +161,18 @@ builder.Services.AddPluginHotReload(sharedTypes:
 ]);
 
 var app = builder.Build();
+
+// ==================== 数据库自动建表 + 种子数据 ====================
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+    // 开发阶段使用 EnsureCreated 直接按模型建表（SQLite / SqlServer 均适用），
+    // 避免迁移历史与模型不一致导致"no such table"。
+    db.Database.EnsureCreated();
+
+    var permissionSeed = scope.ServiceProvider.GetRequiredService<IPermissionSeedService>();
+    DbSeeder.Seed(db, permissionSeed);
+}
 
 // ==================== 中间件管道 ====================
 if (app.Environment.IsDevelopment())
