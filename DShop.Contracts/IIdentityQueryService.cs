@@ -23,6 +23,14 @@ namespace DShop.Contracts
         /// </summary>
         List<Menu> ExpandMenuAncestors(List<Menu> menus);
         List<Permission> GetUserPermissions(long userId);
+        /// <summary>
+        /// 取用户直接绑定的权限（仅 UserPermissions 表，不含角色权限）。
+        /// </summary>
+        List<Permission> GetUserDirectPermissions(long userId);
+        /// <summary>
+        /// 取用户所有可见权限，并标注每个权限的来源（direct/role/both）。
+        /// </summary>
+        List<VisiblePermissionResponse> GetUserVisiblePermissions(long userId);
         List<string> GetUserRoleCodes(long userId);
         List<Role> GetRoles();
         List<long> GetUserRoleIds(long userId);

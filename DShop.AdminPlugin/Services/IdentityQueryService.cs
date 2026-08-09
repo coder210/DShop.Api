@@ -97,7 +97,7 @@ namespace DShop.AdminPlugin.Services
         }
 
         /// <summary>
-        /// 取用户所有能看到的菜单树，并标注每个菜单的来源（direct/role/both）。
+        /// 取用户所有能看到的菜单树，并标注每个菜单的来源（direct/role/both）及具体来自哪些角色。
         /// 先取可见菜单并补全祖先，再按 UserMenus / RoleMenus 归属判断来源。
         /// </summary>
         public List<VisibleMenuResponse> GetUserVisibleMenus(long userId)
@@ -112,10 +112,23 @@ namespace DShop.AdminPlugin.Services
                 .Select(um => um.MenuId)
                 .ToHashSet();
 
-            var roleMenuIds = _context.RoleMenus
+            // menuId -> 来源角色名称列表（先查数据，再在内存中 Join + 分组，避免 EF 翻译限制）
+            var roleMenuRows = _context.RoleMenus
                 .Where(rm => roleIds.Contains(rm.RoleId))
-                .Select(rm => rm.MenuId)
-                .ToHashSet();
+                .Select(rm => new { rm.RoleId, rm.MenuId })
+                .ToList();
+            var roleNamesById = _context.Roles
+                .Select(r => new { r.Id, r.Name })
+                .ToList()
+                .ToDictionary(r => r.Id, r => r.Name);
+            var roleNamesByMenu = roleMenuRows
+                .GroupBy(x => x.MenuId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => roleNamesById.TryGetValue(x.RoleId, out var n) ? n : "未知角色")
+                          .Distinct().ToList());
+
+            var roleMenuIds = roleNamesByMenu.Keys.ToHashSet();
 
             // 可见菜单 = 直接绑定 ∪ 角色菜单，并临时补全祖先（祖先本身不算有绑定来源，标记为 role 占位由前端可读）
             var visible = _context.Menus
@@ -124,14 +137,14 @@ namespace DShop.AdminPlugin.Services
             visible = ExpandMenuAncestors(visible);
 
             var rootMenus = visible.Where(m => m.ParentId == 0).OrderBy(m => m.SortOrder).ToList();
-            return BuildVisibleTree(rootMenus, visible, directIds, roleMenuIds);
+            return BuildVisibleTree(rootMenus, visible, directIds, roleNamesByMenu);
         }
 
         private List<VisibleMenuResponse> BuildVisibleTree(
             List<Menu> parentNodes,
             List<Menu> allMenus,
             HashSet<long> directIds,
-            HashSet<long> roleMenuIds)
+            Dictionary<long, List<string>> roleNamesByMenu)
         {
             var result = new List<VisibleMenuResponse>();
 
@@ -145,20 +158,21 @@ namespace DShop.AdminPlugin.Services
                     Icon = parent.Icon,
                     SortOrder = parent.SortOrder,
                     Controller = parent.Controller,
-                    Source = ResolveSource(parent.Id, directIds, roleMenuIds)
+                    Source = ResolveSource(parent.Id, directIds, roleNamesByMenu),
+                    RoleNames = roleNamesByMenu.TryGetValue(parent.Id, out var names) ? names : null
                 };
                 var children = allMenus.Where(m => m.ParentId == parent.Id).OrderBy(m => m.SortOrder).ToList();
-                node.Children = BuildVisibleTree(children, allMenus, directIds, roleMenuIds);
+                node.Children = BuildVisibleTree(children, allMenus, directIds, roleNamesByMenu);
                 result.Add(node);
             }
 
             return result;
         }
 
-        private static string ResolveSource(long menuId, HashSet<long> directIds, HashSet<long> roleMenuIds)
+        private static string ResolveSource(long menuId, HashSet<long> directIds, Dictionary<long, List<string>> roleNamesByMenu)
         {
             var isDirect = directIds.Contains(menuId);
-            var isRole = roleMenuIds.Contains(menuId);
+            var isRole = roleNamesByMenu.ContainsKey(menuId);
             return isDirect && isRole ? "both" : (isDirect ? "direct" : (isRole ? "role" : "ancestor"));
         }
 
@@ -184,6 +198,78 @@ namespace DShop.AdminPlugin.Services
 
             var permissionIds = rolePermissionIds.Union(userPermissionIds).ToList();
             return _context.Permissions.Where(it => permissionIds.Contains(it.Id)).ToList();
+        }
+
+        /// <summary>
+        /// 取用户直接绑定的权限（仅 UserPermissions 表，不含角色权限）。
+        /// 用于用户管理"绑定权限"，语义是只管理用户自己的额外权限。
+        /// </summary>
+        public List<Permission> GetUserDirectPermissions(long userId)
+        {
+            var permissionIds = _context.UserPermissions
+                .Where(up => up.UserId == userId)
+                .Select(up => up.PermissionId)
+                .ToList();
+            return _context.Permissions.Where(it => permissionIds.Contains(it.Id)).ToList();
+        }
+
+        /// <summary>
+        /// 取用户所有可见权限，并标注每个权限的来源（direct/role/both）及具体来自哪些角色。
+        /// </summary>
+        public List<VisiblePermissionResponse> GetUserVisiblePermissions(long userId)
+        {
+            var roleIds = _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .ToList();
+
+            var directIds = _context.UserPermissions
+                .Where(up => up.UserId == userId)
+                .Select(up => up.PermissionId)
+                .ToHashSet();
+
+            // permissionId -> 来源角色名称列表（先查数据，再在内存中 Join + 分组，避免 EF 翻译限制）
+            var rolePermissionRows = _context.RolePermissions
+                .Where(rp => roleIds.Contains(rp.RoleId))
+                .Select(rp => new { rp.RoleId, rp.PermissionId })
+                .ToList();
+            var roleNamesById = _context.Roles
+                .Select(r => new { r.Id, r.Name })
+                .ToList()
+                .ToDictionary(r => r.Id, r => r.Name);
+            var roleNamesByPermission = rolePermissionRows
+                .GroupBy(x => x.PermissionId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => roleNamesById.TryGetValue(x.RoleId, out var n) ? n : "未知角色")
+                          .Distinct().ToList());
+
+            var rolePermissionIds = roleNamesByPermission.Keys.ToHashSet();
+
+            var permissionIds = directIds.Union(rolePermissionIds).ToList();
+            return _context.Permissions
+                .Where(p => permissionIds.Contains(p.Id))
+                .OrderBy(p => p.Module).ThenBy(p => p.SortOrder)
+                .AsEnumerable()
+                .Select(p => new VisiblePermissionResponse
+                {
+                    Id = p.Id,
+                    PermissionCode = p.PermissionCode,
+                    Description = p.Description,
+                    Module = p.Module,
+                    Endpoint = p.Endpoint,
+                    ApiPath = p.ApiPath,
+                    Source = ResolvePermissionSource(p.Id, directIds, rolePermissionIds),
+                    RoleNames = roleNamesByPermission.TryGetValue(p.Id, out var names) ? names : null
+                })
+                .ToList();
+        }
+
+        private static string ResolvePermissionSource(long permissionId, HashSet<long> directIds, HashSet<long> rolePermissionIds)
+        {
+            var isDirect = directIds.Contains(permissionId);
+            var isRole = rolePermissionIds.Contains(permissionId);
+            return isDirect && isRole ? "both" : (isDirect ? "direct" : "role");
         }
 
         /// <summary>

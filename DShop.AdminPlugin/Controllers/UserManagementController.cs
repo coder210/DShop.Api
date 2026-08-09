@@ -221,9 +221,23 @@ namespace DShop.AdminPlugin.Controllers
         [HttpGet("{userId}/Permissions")]
         public IActionResult GetBindingPermissionsList(long userId)
         {
-            var permissions = _identityQueryService.GetUserPermissions(userId);
+            // 只回显用户直接绑定的权限(UserPermissions)，不含角色权限。
+            // 用户管理"绑定权限"语义 = 只管理用户自己的额外权限。
+            var permissions = _identityQueryService.GetUserDirectPermissions(userId);
             var permissionIdList = permissions.Select(it => it.Id).ToList();
             return Ok(new ApiResponse { Code = 200, Data = permissionIdList, Msg = "获取成功" });
+        }
+
+        /// <summary>
+        /// 用户可见权限（含来源标注：direct/role/both）
+        /// </summary>
+        [SwaggerOperation(Summary = "用户可见权限", Description = "获取用户所有能看到的权限，并标注来源")]
+        [AuthorizePermission("user-management:visible-permissions", "查看用户可见权限")]
+        [HttpGet("{userId}/VisiblePermissions")]
+        public IActionResult GetVisiblePermissions(long userId)
+        {
+            var permissions = _identityQueryService.GetUserVisiblePermissions(userId);
+            return Ok(new ApiResponse { Code = 200, Data = permissions, Msg = "获取成功" });
         }
 
         /// <summary>
@@ -232,11 +246,14 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "用户绑定权限", Description = "用户绑定权限,多项permissionIds以逗号分隔")]
         [AuthorizePermission("user-management:permissions:bind", "用户绑定权限")]
         [HttpPost("{userId}/Permissions/Bind")]
-        public IActionResult BindPermissions(long userId, [FromForm] string permissionIds)
+        public IActionResult BindPermissions(long userId, [FromForm] string? permissionIds)
         {
-            var permissionIdList = permissionIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                      .Select(id => Convert.ToInt64(id))
-                                      .ToList();
+            // 允许不勾选（空 permissionIds）以清空该用户的直接权限绑定
+            var permissionIdList = string.IsNullOrWhiteSpace(permissionIds)
+                ? new List<long>()
+                : permissionIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                               .Select(id => Convert.ToInt64(id))
+                               .ToList();
             var (success, message) = _identityCommandService.BindPermissionList(userId, permissionIdList);
             if (success)
             {

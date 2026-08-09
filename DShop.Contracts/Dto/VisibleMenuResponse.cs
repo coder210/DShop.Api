@@ -19,6 +19,10 @@ namespace DShop.Contracts.Dto
         /// 菜单来源：direct / role / both
         /// </summary>
         public string Source { get; set; }
+        /// <summary>
+        /// 该菜单来自的角色名称列表（来自角色时非空；直接绑定/祖先时为 null 或空）。
+        /// </summary>
+        public List<string> RoleNames { get; set; }
         public List<VisibleMenuResponse> Children { get; set; } = new List<VisibleMenuResponse>();
     }
 }

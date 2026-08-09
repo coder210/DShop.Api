@@ -179,11 +179,14 @@ namespace DShop.AdminPlugin.Controllers
         [HttpPost("{id}/Permissions/Bind")]
         [SwaggerOperation(Summary = "角色绑定权限", Description = "角色绑定权限,多项permissionIds以逗号分隔")]
         [AuthorizePermission("role-management:permissions-bind", "角色绑定权限")]
-        public IActionResult BindPermissions(int id, [FromForm] string permissionIds)
+        public IActionResult BindPermissions(int id, [FromForm] string? permissionIds)
         {
-            var permissionIdList = permissionIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                    .Select(p => Convert.ToInt64(p))
-                                    .ToList();
+            // 允许不勾选（空 permissionIds）以清空该角色的权限绑定
+            var permissionIdList = string.IsNullOrWhiteSpace(permissionIds)
+                ? new List<long>()
+                : permissionIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                               .Select(p => Convert.ToInt64(p))
+                               .ToList();
             if (_identityCommandService.BindRolePermissions(id, permissionIdList))
                 return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "绑定成功" });
             return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "绑定失败" });
