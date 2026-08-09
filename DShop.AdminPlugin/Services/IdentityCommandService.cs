@@ -375,6 +375,7 @@ namespace DShop.AdminPlugin.Services
                 Name = request.Name,
                 Path = request.Path,
                 Icon = request.Icon,
+                Controller = request.Controller ?? string.Empty,
                 ParentId = request.ParentId,
                 SortOrder = request.SortOrder,
                 CreatedAt = DateTime.Now
@@ -402,7 +403,7 @@ namespace DShop.AdminPlugin.Services
             existing.Name = request.Name;
             existing.Path = request.Path;
             existing.Icon = request.Icon;
-            existing.Controller = request.Controller;
+            existing.Controller = request.Controller ?? string.Empty;
             existing.ParentId = request.ParentId;
             existing.SortOrder = request.SortOrder;
 
