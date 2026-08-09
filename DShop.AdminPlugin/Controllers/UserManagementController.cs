@@ -128,7 +128,7 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "修改用户密码", Description = "重置/修改指定用户的登录密码")]
         [AuthorizePermission("user-management:change-password", "修改用户密码")]
         [HttpPost("ChangePassword/{id}")]
-        public IActionResult ChangePassword(long id, [FromForm] string newPassword)
+        public IActionResult ChangePassword(long id, [FromForm] string newPassword, [FromForm] string confirmPassword)
         {
             if (string.IsNullOrWhiteSpace(newPassword))
             {
@@ -137,6 +137,14 @@ namespace DShop.AdminPlugin.Controllers
             if (newPassword.Length < 6)
             {
                 return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "密码长度至少为6位" });
+            }
+            if (string.IsNullOrWhiteSpace(confirmPassword))
+            {
+                return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "请再次输入确认密码" });
+            }
+            if (newPassword != confirmPassword)
+            {
+                return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "两次输入的密码不一致" });
             }
             if (_identityCommandService.UpdatePassword(id, newPassword, string.Empty, out string msg))
             {
@@ -153,9 +161,35 @@ namespace DShop.AdminPlugin.Controllers
         [HttpGet("{userId}/Menus")]
         public IActionResult GetBindingMenusList(long userId)
         {
-            var menus = _identityQueryService.GetUserMenus(userId);
+            // 只回显用户直接绑定的菜单(UserMenus)，不含角色菜单。
+            // 用户管理"绑定菜单"语义 = 只管理用户自己的额外菜单。
+            var menus = _identityQueryService.GetUserDirectMenus(userId);
             var menuIdList = menus.Select(it => it.Id).ToList();
             return Ok(new ApiResponse { Code = 200, Data = menuIdList, Msg = "获取成功" });
+        }
+
+        /// <summary>
+        /// 用户可见菜单（树形，含来源标注：direct/role/both）
+        /// </summary>
+        [SwaggerOperation(Summary = "用户可见菜单", Description = "获取用户所有能看到的菜单树，并标注来源")]
+        [AuthorizePermission("user-management:visible-menus", "查看用户可见菜单")]
+        [HttpGet("{userId}/VisibleMenus")]
+        public IActionResult GetVisibleMenus(long userId)
+        {
+            var tree = _identityQueryService.GetUserVisibleMenus(userId);
+            return Ok(new ApiResponse { Code = 200, Data = tree, Msg = "获取成功" });
+        }
+
+        /// <summary>
+        /// 菜单树（供用户分配菜单）
+        /// </summary>
+        [HttpGet("Menus/Tree")]
+        [SwaggerOperation(Summary = "菜单树", Description = "获取菜单树")]
+        [AuthorizePermission("user-management:binding:menus", "获取菜单树")]
+        public IActionResult GetMenuTree()
+        {
+            var tree = _identityQueryService.GetMenuTree(null);
+            return Ok(new ApiResponse { Code = 200, Data = tree, Msg = "获取成功" });
         }
 
         /// <summary>
@@ -164,11 +198,14 @@ namespace DShop.AdminPlugin.Controllers
         [SwaggerOperation(Summary = "用户绑定菜单", Description = "用户绑定菜单,多项menuIds以逗号分隔")]
         [AuthorizePermission("user-management:menus:bind", "用户绑定菜单")]
         [HttpPost("{userId}/Menus/Bind")]
-        public IActionResult BindMenus(long userId, [FromForm] string menuIds)
+        public IActionResult BindMenus(long userId, [FromForm] string? menuIds)
         {
-            var menuIdList = menuIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                      .Select(id => Convert.ToInt64(id))
-                                      .ToList();
+            // 允许不勾选（空 menuIds）以清空该用户的直接菜单绑定
+            var menuIdList = string.IsNullOrWhiteSpace(menuIds)
+                ? new List<long>()
+                : menuIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                         .Select(id => Convert.ToInt64(id))
+                         .ToList();
             if (_identityCommandService.BindMenuList(userId, menuIdList))
             {
                 return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "绑定成功" });
@@ -235,6 +272,28 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         /// <summary>
+        /// 获取所有权限列表（含模块分组信息，供前端按模块分组）
+        /// </summary>
+        [HttpGet("Permissions/All")]
+        [AuthorizePermission("user-management:permissions:list", "获取所有权限列表")]
+        public IActionResult GetAllPermissionsWithModule()
+        {
+            var permissions = _identityQueryService.GetPermissions();
+            var result = permissions.Select(p => new
+            {
+                id = p.Id,
+                permissionCode = p.PermissionCode,
+                description = p.Description,
+                module = p.Module,
+                endpoint = p.Endpoint,
+                apiPath = p.ApiPath,
+                remark = p.Remark,
+                sortOrder = p.SortOrder
+            }).ToList();
+            return Ok(new ApiResponse { Code = 200, Data = result, Msg = "获取成功" });
+        }
+
+        /// <summary>
         /// 获取所有角色列表（用于绑定）
         /// </summary>
         [SwaggerOperation(Summary = "获取所有角色列表", Description = "获取所有角色列表")]
@@ -276,6 +335,10 @@ namespace DShop.AdminPlugin.Controllers
             var roleIdList = roleIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
                                    .Select(id => Convert.ToInt64(id))
                                    .ToList();
+            if (roleIdList.Count == 0)
+            {
+                return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "请至少选择一个角色" });
+            }
             var (success, message) = _identityCommandService.BindRoleList(userId, roleIdList);
             if (success)
             {

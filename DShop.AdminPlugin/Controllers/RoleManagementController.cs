@@ -148,11 +148,14 @@ namespace DShop.AdminPlugin.Controllers
         [HttpPost("{id}/Menus/Bind")]
         [SwaggerOperation(Summary = "角色绑定菜单", Description = "角色绑定菜单,多项menuIds以逗号分隔")]
         [AuthorizePermission("role-management:menus-bind", "角色绑定菜单")]
-        public IActionResult BindMenus(int id, [FromForm] string menuIds)
+        public IActionResult BindMenus(int id, [FromForm] string? menuIds)
         {
-            var menuIdList = menuIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                    .Select(m => Convert.ToInt64(m))
-                                    .ToList();
+            // 允许不勾选（空 menuIds）以清空该角色的菜单绑定
+            var menuIdList = string.IsNullOrWhiteSpace(menuIds)
+                ? new List<long>()
+                : menuIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                         .Select(m => Convert.ToInt64(m))
+                         .ToList();
             if (_identityCommandService.BindRoleMenus(id, menuIdList))
                 return Ok(new ApiResponse { Code = 200, Data = string.Empty, Msg = "绑定成功" });
             return Ok(new ApiResponse { Code = 400, Data = string.Empty, Msg = "绑定失败" });
@@ -194,7 +197,7 @@ namespace DShop.AdminPlugin.Controllers
         [AuthorizePermission("role-management:menus-tree", "获取菜单树")]
         public IActionResult GetMenuTree()
         {
-            var tree = _identityQueryService.GetMenuTree();
+            var tree = _identityQueryService.GetMenuTree(null);
             return Ok(new ApiResponse { Code = 200, Data = tree, Msg = "获取成功" });
         }
 

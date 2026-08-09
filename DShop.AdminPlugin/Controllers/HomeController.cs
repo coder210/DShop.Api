@@ -59,6 +59,10 @@ namespace DShop.AdminPlugin.Controllers
             var userId = Convert.ToInt64(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             var menus = _identityQueryService.GetUserMenus(userId);
 
+            // 临时补全可见菜单的祖先（仅用于构建导航树，不写回绑定表），
+            // 保证勾选子菜单时左侧导航能向上展开到顶级菜单
+            menus = _identityQueryService.ExpandMenuAncestors(menus);
+
             var topMenus = menus.Where(it => it.ParentId == 0).OrderBy(it => it.SortOrder).ToList();
             var userMenus = new List<UserMenuResponse>();
 
