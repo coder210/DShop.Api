@@ -41,5 +41,15 @@ namespace DShop.Contracts
         /// 删除品牌
         /// </summary>
         (bool Success, string Message) DeleteBrand(long id);
+
+        /// <summary>
+        /// 新建/更新属性库属性
+        /// </summary>
+        (bool Success, string Message) SaveAttr(CreateOrUpdateAttrRequest request);
+
+        /// <summary>
+        /// 删除属性库属性
+        /// </summary>
+        (bool Success, string Message) DeleteAttr(long id);
     }
 }

@@ -24,8 +24,11 @@ public static class DbSeeder
             ("审计日志", "/home/audit-log-management", "Bell", "AuditLog", 6),
             ("客户管理", "/home/customer-management", "User", "CustomerManagement", 7),
             ("商品管理", "/home/product-management", "Goods", "ProductManagement", 8),
-            ("订单管理", "/home/order-management", "List", "OrderManagement", 9),
-            ("售后管理", "/home/refund-management", "RefreshLeft", "RefundManagement", 10),
+            ("分类管理", "/home/category-management", "Files", "CategoryManagement", 9),
+            ("品牌管理", "/home/brand-management", "Medal", "BrandManagement", 10),
+            ("属性管理", "/home/attr-management", "MagicStick", "AttrManagement", 11),
+            ("订单管理", "/home/order-management", "List", "OrderManagement", 12),
+            ("售后管理", "/home/refund-management", "RefreshLeft", "RefundManagement", 13),
         };
 
         foreach (var dm in defaultMenus)

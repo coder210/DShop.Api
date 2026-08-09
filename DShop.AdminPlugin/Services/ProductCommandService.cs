@@ -396,6 +396,78 @@ namespace DShop.AdminPlugin.Services
             return (true, "删除成功");
         }
 
+        public (bool Success, string Message) SaveAttr(CreateOrUpdateAttrRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return (false, "属性名称不能为空");
+            }
+            if (request.CategoryId <= 0)
+            {
+                return (false, "请选择所属分类");
+            }
+
+            var now = DateTime.Now;
+            var userId = _userContext.CurrentUserId;
+
+            if (request.Id > 0)
+            {
+                var attr = _context.Attrs.FirstOrDefault(a => a.Id == request.Id && !a.IsDeleted);
+                if (attr == null)
+                {
+                    return (false, "属性不存在");
+                }
+                attr.CategoryId = request.CategoryId;
+                attr.Name = request.Name;
+                attr.AttrType = (AttrType)request.AttrType;
+                attr.ValueSelect = request.ValueSelect;
+                attr.SearchType = (AttrSearchType)request.SearchType;
+                attr.ValueType = (AttrValueType)request.ValueType;
+                attr.ShowDesc = request.ShowDesc;
+                attr.Status = (AttrStatus)request.Status;
+                attr.ModifiedBy = userId;
+                attr.ModifiedAt = now;
+            }
+            else
+            {
+                _context.Attrs.Add(new Attr
+                {
+                    CategoryId = request.CategoryId,
+                    Name = request.Name,
+                    AttrType = (AttrType)request.AttrType,
+                    ValueSelect = request.ValueSelect,
+                    SearchType = (AttrSearchType)request.SearchType,
+                    ValueType = (AttrValueType)request.ValueType,
+                    ShowDesc = request.ShowDesc,
+                    Status = (AttrStatus)request.Status,
+                    IsDeleted = false,
+                    CreatedBy = userId,
+                    ModifiedBy = userId,
+                    CreatedAt = now,
+                    ModifiedAt = now
+                });
+            }
+
+            _context.SaveChanges();
+            return (true, request.Id > 0 ? "更新成功" : "创建成功");
+        }
+
+        public (bool Success, string Message) DeleteAttr(long id)
+        {
+            var attr = _context.Attrs.FirstOrDefault(a => a.Id == id && !a.IsDeleted);
+            if (attr == null)
+            {
+                return (false, "属性不存在");
+            }
+
+            var now = DateTime.Now;
+            attr.IsDeleted = true;
+            attr.ModifiedBy = _userContext.CurrentUserId;
+            attr.ModifiedAt = now;
+            _context.SaveChanges();
+            return (true, "删除成功");
+        }
+
         /// <summary>
         /// 保存Base64图片到文件，返回相对路径
         /// </summary>
