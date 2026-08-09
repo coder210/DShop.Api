@@ -408,11 +408,14 @@ namespace DShop.AdminPlugin.Services
             existing.Name = request.Name;
             existing.Path = request.Path;
             existing.Icon = request.Icon;
+            existing.Controller = request.Controller;
             existing.ParentId = request.ParentId;
             existing.SortOrder = request.SortOrder;
 
+            _context.SaveChanges();
+            // 幂等更新：即使字段无实际变化 SaveChanges 返回 0，也算更新成功
             msg = "修改成功";
-            return _context.SaveChanges() > 0;
+            return true;
         }
 
         public bool DeleteMenu(long id, out string msg)

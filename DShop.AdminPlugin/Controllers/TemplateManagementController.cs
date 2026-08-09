@@ -1,6 +1,8 @@
 using DShop.Contracts;
 using DShop.Contracts.Dto;
+using DShop.PluginShared;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace DShop.AdminPlugin.Controllers
 {
@@ -18,6 +20,8 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         [HttpGet("GetList")]
+        [SwaggerOperation(Summary = "模板列表", Description = "获取模板列表")]
+        [AuthorizePermission("template-management:list", "获取模板列表")]
         public IActionResult GetList([FromQuery] string? keyword, [FromQuery] int page = 1, [FromQuery] int size = 20)
         {
             var result = _systemQueryService.GetTemplateList(keyword, page, size);
@@ -25,6 +29,8 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         [HttpGet("Get/{id}")]
+        [SwaggerOperation(Summary = "模板详情", Description = "获取模板详情")]
+        [AuthorizePermission("template-management:get", "获取模板详情")]
         public IActionResult Get(long id)
         {
             var result = _systemQueryService.GetTemplateById(id);
@@ -32,6 +38,8 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         [HttpPost("Create")]
+        [SwaggerOperation(Summary = "创建模板", Description = "创建新模板")]
+        [AuthorizePermission("template-management:create", "创建模板")]
         public IActionResult Create([FromBody] CreateTemplateRequest request)
         {
             var success = _systemCommandService.CreateTemplate(request, out string msg);
@@ -39,13 +47,17 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         [HttpPost("Update")]
+        [SwaggerOperation(Summary = "更新模板", Description = "更新模板信息")]
+        [AuthorizePermission("template-management:update", "更新模板")]
         public IActionResult Update([FromBody] UpdateTemplateRequest request)
         {
             var success = _systemCommandService.UpdateTemplate(request, out string msg);
             return Ok(new ApiResponse { Code = success ? 200 : 400, Msg = msg });
         }
 
-        [HttpDelete("Delete/{id}")]
+        [HttpPost("Delete/{id}")]
+        [SwaggerOperation(Summary = "删除模板", Description = "删除模板")]
+        [AuthorizePermission("template-management:delete", "删除模板")]
         public IActionResult Delete(long id)
         {
             var success = _systemCommandService.DeleteTemplate(id, out string msg);

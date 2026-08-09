@@ -323,6 +323,7 @@ namespace DShop.AdminPlugin.Services
                 Path = menu.Path,
                 Icon = menu.Icon,
                 SortOrder = menu.SortOrder,
+                Controller = menu.Controller,
             };
         }
 
