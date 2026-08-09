@@ -1,0 +1,46 @@
+import sqlite3, os, shutil, datetime
+
+db = os.path.join('DShop.WebApi', 'DShop.db')
+backup = f"{db}.bak_shop_{datetime.datetime.now():%Y%m%d_%H%M%S}"
+shutil.copy2(db, backup)
+print(f"已备份数据库到: {backup}")
+
+tables = {
+    "Spus": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, CategoryId INTEGER NOT NULL, BrandId INTEGER NOT NULL, Weight TEXT NOT NULL, Desc TEXT, Status INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "Skus": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, SpuId INTEGER NOT NULL, ImageUrl TEXT, Price INTEGER NOT NULL, SaleCount INTEGER NOT NULL, BarCode TEXT, QrCode TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "Categories": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, ParentId INTEGER NOT NULL, Name TEXT NOT NULL, Icon TEXT, Level INTEGER NOT NULL, SortOrder INTEGER NOT NULL, Status INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "Brands": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Logo TEXT, Desc TEXT, FirstLetter TEXT, Status INTEGER NOT NULL, SortOrder INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "Attrs": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, CategoryId INTEGER NOT NULL, Name TEXT NOT NULL, SearchType INTEGER NOT NULL, ValueType INTEGER NOT NULL, AttrType INTEGER NOT NULL, Icon TEXT, ValueSelect TEXT, ShowDesc INTEGER NOT NULL, Status INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "AttrGroups": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, CategoryId INTEGER NOT NULL, Name TEXT NOT NULL, SortOrder INTEGER NOT NULL, Desc TEXT, Icon TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "AttrAttrGroups": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, AttrId INTEGER NOT NULL, AttrGroupId INTEGER NOT NULL, SortOrder INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "SpuAttrValues": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, SpuId INTEGER NOT NULL, AttrId INTEGER NOT NULL, Name TEXT, Value TEXT, SortOrder INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "SkuAttrValues": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, SkuId INTEGER NOT NULL, AttrId INTEGER NOT NULL, Name TEXT, Value TEXT, SortOrder INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "SpuImages": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, SpuId INTEGER NOT NULL, ImageUrl TEXT, SortOrder INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "Orders": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, CustomerId INTEGER NOT NULL, OrderSn TEXT NOT NULL, CouponId INTEGER NOT NULL, CustomerMobile TEXT, TotalAmount INTEGER NOT NULL, PayAmount INTEGER NOT NULL, FreightAmount INTEGER NOT NULL, PromotionAmount INTEGER NOT NULL, IntegrationAmount INTEGER NOT NULL, CouponAmount INTEGER NOT NULL, DiscountAmount INTEGER NOT NULL, PayType INTEGER NOT NULL, SourceType INTEGER NOT NULL, Status INTEGER NOT NULL, DeliveryCompany TEXT, DeliverySn TEXT, AutoConfirmDay INTEGER NOT NULL, Integration INTEGER NOT NULL, BillType INTEGER NOT NULL, BillHeader TEXT, BillContent TEXT, BillReceiverPhone TEXT, BillReceiverEmail TEXT, ReceiverName TEXT, ReceiverPhone TEXT, ReceiverPostCode TEXT, ReceiverProvince TEXT, ReceiverCity TEXT, ReceiverRegion TEXT, ReceiverDetailAddress TEXT, Note TEXT, IsConfirm INTEGER NOT NULL, UseIntegration INTEGER NOT NULL, PaymentTime TEXT, DeliveryTime TEXT, ReceiveTime TEXT, CommentTime TEXT, ModifyTime TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "OrderItems": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, OrderId INTEGER NOT NULL, OrderSn TEXT NOT NULL, SpuId INTEGER NOT NULL, SpuName TEXT NOT NULL, SpuBrand TEXT, CategoryId INTEGER NOT NULL, SkuId INTEGER NOT NULL, SkuName TEXT, SkuPic TEXT, SkuPrice INTEGER NOT NULL, SkuQuantity INTEGER NOT NULL, SkuAttrsVals TEXT, PromotionAmount INTEGER NOT NULL, CouponAmount INTEGER NOT NULL, IntegrationAmount INTEGER NOT NULL, RealAmount INTEGER NOT NULL, GiftIntegration INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "OrderEvents": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, EventType INTEGER NOT NULL, Count INTEGER NOT NULL, MaxCount INTEGER NOT NULL, Status INTEGER NOT NULL, Content TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "OrderOperateHistories": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, OrderId INTEGER NOT NULL, OperateMan TEXT NOT NULL, OrderStatus INTEGER NOT NULL, Note TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "OrderRecords": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, OrderId INTEGER NOT NULL, OrderNumber TEXT, Comment TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "Customers": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, Mobile TEXT, Nickname TEXT, Email TEXT, Password TEXT, Salt TEXT, Idiograph TEXT, Coin INTEGER NOT NULL, Gender INTEGER NOT NULL, Avatar TEXT, Address TEXT, Status INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "DeliveryAddresses": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, CustomerId INTEGER NOT NULL, ContactPerson TEXT, Mobile TEXT, ProvinceCode INTEGER NOT NULL, CityCode INTEGER NOT NULL, DistrictCode INTEGER NOT NULL, DetailedAddress TEXT, Address TEXT, IsDefault INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "CoinRecords": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, CustomerId INTEGER NOT NULL, Mobile TEXT, Type INTEGER NOT NULL, Title TEXT, Amount INTEGER NOT NULL, Remark TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "BrowsingSpus": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, CustomerId INTEGER NOT NULL, SpuId INTEGER NOT NULL, SpuName TEXT, SpuPrice INTEGER NOT NULL, SpuImageUrl TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "CollectSpus": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, CustomerId INTEGER NOT NULL, SpuId INTEGER NOT NULL, SpuName TEXT, SpuPrice INTEGER NOT NULL, SpuImageUrl TEXT, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+    "IdentifyingCodes": "Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, Type INTEGER NOT NULL, AreaCode TEXT, Mobile TEXT, Code TEXT, Status INTEGER NOT NULL, IsDeleted INTEGER NOT NULL, ModifiedBy INTEGER NOT NULL, ModifiedAt TEXT NOT NULL, CreatedBy INTEGER NOT NULL, CreatedAt TEXT NOT NULL",
+}
+
+conn = sqlite3.connect(db)
+cur = conn.cursor()
+created = 0
+for name, cols in tables.items():
+    # 跳过已存在的表
+    exists = cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone()
+    if exists:
+        print(f"[跳过] {name} 已存在")
+        continue
+    cur.execute(f"CREATE TABLE IF NOT EXISTS {name} ({cols})")
+    created += 1
+    print(f"[创建] {name}")
+conn.commit()
+conn.close()
+print(f"\n完成：新建 {created} 张表")

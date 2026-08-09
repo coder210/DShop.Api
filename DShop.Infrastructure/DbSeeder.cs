@@ -22,6 +22,10 @@ public static class DbSeeder
             ("菜单管理", "/home/menu-management", "Menu", "MenuManagement", 4),
             ("模板管理", "/home/template-management", "Document", "TemplateManagement", 5),
             ("审计日志", "/home/audit-log-management", "Bell", "AuditLog", 6),
+            ("客户管理", "/home/customer-management", "User", "CustomerManagement", 7),
+            ("商品管理", "/home/product-management", "Goods", "ProductManagement", 8),
+            ("订单管理", "/home/order-management", "List", "OrderManagement", 9),
+            ("售后管理", "/home/refund-management", "RefreshLeft", "RefundManagement", 10),
         };
 
         foreach (var dm in defaultMenus)

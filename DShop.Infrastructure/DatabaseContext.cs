@@ -164,5 +164,36 @@ namespace DShop.Infrastructure
         /// </summary>
         public DbSet<DocumentTemplate> DocumentTemplates { get; set; }
 
+        // ========== 电商领域（Shop） ==========
+        // 商品
+        public DbSet<Spu> Spus { get; set; }
+        public DbSet<Sku> Skus { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Brand> Brands { get; set; }
+        public DbSet<Attr> Attrs { get; set; }
+        public DbSet<AttrGroup> AttrGroups { get; set; }
+        public DbSet<AttrAttrGroup> AttrAttrGroups { get; set; }
+        public DbSet<SpuAttrValue> SpuAttrValues { get; set; }
+        public DbSet<SkuAttrValue> SkuAttrValues { get; set; }
+        public DbSet<SpuImage> SpuImages { get; set; }
+
+        // 订单
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<OrderEvent> OrderEvents { get; set; }
+        public DbSet<OrderOperateHistory> OrderOperateHistories { get; set; }
+        public DbSet<OrderRecord> OrderRecords { get; set; }
+
+        // 售后
+        public DbSet<RefundOrder> RefundOrders { get; set; }
+
+        // 客户
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<DeliveryAddress> DeliveryAddresses { get; set; }
+        public DbSet<CoinRecord> CoinRecords { get; set; }
+        public DbSet<BrowsingSpu> BrowsingSpus { get; set; }
+        public DbSet<CollectSpu> CollectSpus { get; set; }
+        public DbSet<IdentifyingCode> IdentifyingCodes { get; set; }
+
     }
 }
