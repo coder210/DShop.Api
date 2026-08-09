@@ -4,6 +4,7 @@ using DShop.Infrastructure.Plugins;
 using DShop.PluginShared;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.IdentityModel.Tokens.Jwt;
@@ -186,6 +187,20 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+
+// 图片访问：/images/xxx.png -> {FileStorage:BasePath}/images/xxx.png
+var fileStorageBasePath = builder.Configuration[Constants.FileStorageBasePath] ?? "D:/Uploads/";
+var imagesDir = Path.Combine(fileStorageBasePath, "images");
+if (!Directory.Exists(imagesDir))
+{
+    Directory.CreateDirectory(imagesDir);
+}
+app.UseStaticFiles(new StaticFileOptions
+{
+    RequestPath = "/images",
+    FileProvider = new PhysicalFileProvider(imagesDir)
+});
+
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();

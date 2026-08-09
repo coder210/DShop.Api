@@ -27,5 +27,10 @@ namespace DShop.Contracts
         /// 品牌分页列表
         /// </summary>
         PagedResponse<BrandResponse> GetBrandList(string? keyword, int pageIndex, int pageSize);
+
+        /// <summary>
+        /// 属性库列表（可按分类、属性类型筛选）
+        /// </summary>
+        List<AttrResponse> GetAttrList(long? categoryId, int attrType);
     }
 }

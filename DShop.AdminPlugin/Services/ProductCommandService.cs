@@ -7,6 +7,7 @@ using DShop.Infrastructure;
 using DShop.Models;
 using DShop.PluginShared;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace DShop.AdminPlugin.Services
 {
@@ -17,11 +18,13 @@ namespace DShop.AdminPlugin.Services
     {
         private readonly DatabaseContext _context;
         private readonly IUserContext _userContext;
+        private readonly IConfiguration _configuration;
 
-        public ProductCommandService(DatabaseContext context, IUserContext userContext)
+        public ProductCommandService(DatabaseContext context, IUserContext userContext, IConfiguration configuration)
         {
             _context = context;
             _userContext = userContext;
+            _configuration = configuration;
         }
 
         public (bool Success, string Message) SaveSpu(CreateOrUpdateSpuRequest request)
@@ -82,7 +85,7 @@ namespace DShop.AdminPlugin.Services
                 }
                 _context.SaveChanges();
 
-                // 整体替换 SKU
+                // 整体替换 SKU（含规格值）
                 var oldSkus = _context.Skus.Where(s => s.SpuId == spu.Id && !s.IsDeleted).ToList();
                 foreach (var old in oldSkus)
                 {
@@ -92,14 +95,61 @@ namespace DShop.AdminPlugin.Services
                 }
                 foreach (var skuReq in request.Skus)
                 {
-                    _context.Skus.Add(new Sku
+                    var skuImageUrl = !string.IsNullOrWhiteSpace(skuReq.ImageUrl)
+                        ? SaveBase64Image(skuReq.ImageUrl)
+                        : null;
+                    var newSku = new Sku
                     {
                         SpuId = spu.Id,
-                        ImageUrl = skuReq.ImageUrl,
+                        ImageUrl = skuImageUrl,
                         Price = skuReq.Price,
                         SaleCount = 0,
                         BarCode = skuReq.BarCode,
                         QrCode = skuReq.QrCode,
+                        IsDeleted = false,
+                        CreatedBy = userId,
+                        ModifiedBy = userId,
+                        CreatedAt = now,
+                        ModifiedAt = now
+                    };
+                    _context.Skus.Add(newSku);
+                    _context.SaveChanges(); // 先拿到 SkuId
+
+                    foreach (var attr in skuReq.AttrValues)
+                    {
+                        _context.SkuAttrValues.Add(new SkuAttrValue
+                        {
+                            SkuId = newSku.Id,
+                            AttrId = attr.AttrId,
+                            Name = attr.Name,
+                            Value = attr.Value,
+                            SortOrder = 0,
+                            IsDeleted = false,
+                            CreatedBy = userId,
+                            ModifiedBy = userId,
+                            CreatedAt = now,
+                            ModifiedAt = now
+                        });
+                    }
+                }
+
+                // 整体替换 SPU 属性值
+                var oldSpuAttrValues = _context.SpuAttrValues.Where(v => v.SpuId == spu.Id && !v.IsDeleted).ToList();
+                foreach (var old in oldSpuAttrValues)
+                {
+                    old.IsDeleted = true;
+                    old.ModifiedBy = userId;
+                    old.ModifiedAt = now;
+                }
+                foreach (var attr in request.SpuAttrValues)
+                {
+                    _context.SpuAttrValues.Add(new SpuAttrValue
+                    {
+                        SpuId = spu.Id,
+                        AttrId = attr.AttrId,
+                        Name = attr.Name,
+                        Value = attr.Value,
+                        SortOrder = 0,
                         IsDeleted = false,
                         CreatedBy = userId,
                         ModifiedBy = userId,
@@ -118,10 +168,13 @@ namespace DShop.AdminPlugin.Services
                 }
                 for (int i = 0; i < request.Images.Count; i++)
                 {
+                    var imgUrl = !string.IsNullOrWhiteSpace(request.Images[i])
+                        ? SaveBase64Image(request.Images[i])
+                        : null;
                     _context.SpuImages.Add(new SpuImage
                     {
                         SpuId = spu.Id,
-                        ImageUrl = request.Images[i],
+                        ImageUrl = imgUrl,
                         SortOrder = i,
                         IsDeleted = false,
                         CreatedBy = userId,
@@ -175,9 +228,18 @@ namespace DShop.AdminPlugin.Services
             spu.ModifiedBy = userId;
             spu.ModifiedAt = now;
 
+            var skuIds = _context.Skus.Where(s => s.SpuId == id && !s.IsDeleted).Select(s => s.Id).ToList();
             foreach (var sku in _context.Skus.Where(s => s.SpuId == id && !s.IsDeleted))
             {
                 sku.IsDeleted = true;
+            }
+            foreach (var attr in _context.SkuAttrValues.Where(v => skuIds.Contains(v.SkuId) && !v.IsDeleted))
+            {
+                attr.IsDeleted = true;
+            }
+            foreach (var attr in _context.SpuAttrValues.Where(v => v.SpuId == id && !v.IsDeleted))
+            {
+                attr.IsDeleted = true;
             }
             foreach (var img in _context.SpuImages.Where(i => i.SpuId == id && !i.IsDeleted))
             {
@@ -282,7 +344,7 @@ namespace DShop.AdminPlugin.Services
                     return (false, "品牌不存在");
                 }
                 brand.Name = request.Name;
-                brand.Logo = request.Logo;
+                brand.Logo = !string.IsNullOrWhiteSpace(request.Logo) ? SaveBase64Image(request.Logo) : brand.Logo;
                 brand.Desc = request.Desc;
                 brand.Status = (BrandStatus)request.Status;
                 brand.SortOrder = request.SortOrder;
@@ -295,7 +357,7 @@ namespace DShop.AdminPlugin.Services
                 _context.Brands.Add(new Brand
                 {
                     Name = request.Name,
-                    Logo = request.Logo,
+                    Logo = !string.IsNullOrWhiteSpace(request.Logo) ? SaveBase64Image(request.Logo) : null,
                     Desc = request.Desc,
                     FirstLetter = firstLetter,
                     Status = (BrandStatus)request.Status,
@@ -332,6 +394,17 @@ namespace DShop.AdminPlugin.Services
             brand.ModifiedAt = now;
             _context.SaveChanges();
             return (true, "删除成功");
+        }
+
+        /// <summary>
+        /// 保存Base64图片到文件，返回相对路径
+        /// </summary>
+        private string SaveBase64Image(string base64Data)
+        {
+            string basePath = _configuration[Constants.FileStorageBasePath] ?? "D:/Uploads/";
+            string fullDir = CommonMethod.GetImageDirectory(basePath);
+            string filename = Base64ImageSaver.SaveBase64Image(base64Data, fullDir);
+            return CommonMethod.GetImageRelativePath(filename);
         }
     }
 }

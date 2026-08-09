@@ -211,9 +211,9 @@ public class PermissionSeedService : IPermissionSeedService
         // Module 即控制器名去 "Controller" 后缀，如 UserManagement、MenuManagement。
         var rolePermissionModules = new Dictionary<string, string[]>
         {
-            // 管理员：系统全部权限（首页看板 + 账号/角色/菜单管理 + 模板 + 审计 + 客户/商品/订单/售后管理）
+            // 管理员：系统全部权限（首页看板 + 账号/角色/菜单管理 + 模板 + 审计 + 客户/商品/订单/售后管理 + 上传）
             ["admin"] = new[] { "Home", "Dashboard", "UserManagement", "RoleManagement", "MenuManagement",
-                "TemplateManagement", "AuditLog", "CustomerManagement", "ProductManagement", "OrderManagement", "RefundManagement" },
+                "TemplateManagement", "AuditLog", "CustomerManagement", "ProductManagement", "OrderManagement", "RefundManagement", "FileUpload" },
             // 总工：查看类权限（首页 + 模板 + 审计）
             ["chief-engineer"] = new[] { "Home", "TemplateManagement", "AuditLog" },
         };

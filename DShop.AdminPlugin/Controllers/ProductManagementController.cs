@@ -131,6 +131,18 @@ namespace DShop.AdminPlugin.Controllers
         }
 
         /// <summary>
+        /// 属性库列表
+        /// </summary>
+        [SwaggerOperation(Summary = "属性库", Description = "获取属性库列表（可选分类/属性类型筛选）")]
+        [AuthorizePermission("product-management:attrs", "获取属性库")]
+        [HttpGet("Attrs")]
+        public IActionResult GetAttrs([FromQuery] long? categoryId, [FromQuery] int attrType = -1)
+        {
+            var result = _queryService.GetAttrList(categoryId, attrType);
+            return Ok(new ApiResponse { Code = 200, Data = result, Msg = "获取成功" });
+        }
+
+        /// <summary>
         /// 新建/更新品牌
         /// </summary>
         [SwaggerOperation(Summary = "保存品牌", Description = "新建或更新品牌")]

@@ -5,6 +5,7 @@ using DShop.Contracts.Dto;
 using DShop.Infrastructure;
 using DShop.Models;
 using DShop.PluginShared;
+using Microsoft.Extensions.Configuration;
 
 namespace DShop.AdminPlugin.Services
 {
@@ -15,11 +16,13 @@ namespace DShop.AdminPlugin.Services
     {
         private readonly DatabaseContext _context;
         private readonly IUserContext _userContext;
+        private readonly IConfiguration _configuration;
 
-        public CustomerCommandService(DatabaseContext context, IUserContext userContext)
+        public CustomerCommandService(DatabaseContext context, IUserContext userContext, IConfiguration configuration)
         {
             _context = context;
             _userContext = userContext;
+            _configuration = configuration;
         }
 
         public (bool Success, string Message) UpdateCustomerStatus(UpdateCustomerStatusRequest request)
@@ -72,7 +75,7 @@ namespace DShop.AdminPlugin.Services
                 Idiograph = null,
                 Coin = request.Coin,
                 Gender = (CustomerGender)request.Gender,
-                Avatar = request.Avatar,
+                Avatar = !string.IsNullOrWhiteSpace(request.Avatar) ? SaveBase64Image(request.Avatar) : null,
                 Address = request.Address,
                 Status = (CustomerStatus)request.Status,
                 IsDeleted = false,
@@ -105,7 +108,10 @@ namespace DShop.AdminPlugin.Services
             customer.Nickname = request.Nickname;
             customer.Email = request.Email;
             customer.Gender = (CustomerGender)request.Gender;
-            customer.Avatar = request.Avatar;
+            if (!string.IsNullOrWhiteSpace(request.Avatar))
+            {
+                customer.Avatar = SaveBase64Image(request.Avatar);
+            }
             customer.Address = request.Address;
             customer.Coin = request.Coin;
             customer.Status = (CustomerStatus)request.Status;
@@ -133,6 +139,17 @@ namespace DShop.AdminPlugin.Services
             var salt = Guid.NewGuid().ToString("N").Substring(0, 16);
             var hash = Md5Helper.ComputeMD5Hash(salt + rawPassword);
             return (salt, hash);
+        }
+
+        /// <summary>
+        /// 保存Base64图片到文件，返回相对路径
+        /// </summary>
+        private string SaveBase64Image(string base64Data)
+        {
+            string basePath = _configuration[Constants.FileStorageBasePath] ?? "D:/Uploads/";
+            string fullDir = CommonMethod.GetImageDirectory(basePath);
+            string filename = Base64ImageSaver.SaveBase64Image(base64Data, fullDir);
+            return CommonMethod.GetImageRelativePath(filename);
         }
     }
 }

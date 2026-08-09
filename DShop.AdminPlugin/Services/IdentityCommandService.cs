@@ -292,16 +292,10 @@ namespace DShop.AdminPlugin.Services
             found.Email = userRequest.Email;
 
             _context.Update(found);
-            if (_context.SaveChanges() > 0)
-            {
-                msg = "修改成功";
-                return true;
-            }
-            else
-            {
-                msg = "修改失败";
-                return false;
-            }
+            _context.SaveChanges();
+            // 幂等更新：即使字段无实际变化也算成功
+            msg = "修改成功";
+            return true;
         }
 
         // ==================== 用户-菜单绑定 ====================

@@ -27,5 +27,29 @@ namespace DShop.Contracts.Dto
         public List<SkuResponse> Skus { get; set; } = new List<SkuResponse>();
         /// <summary>商品图片</summary>
         public List<string> Images { get; set; } = new List<string>();
+        /// <summary>SPU 属性值（键值对）</summary>
+        public List<SpuAttrValueResponse> SpuAttrValues { get; set; } = new List<SpuAttrValueResponse>();
+        /// <summary>规格组</summary>
+        public List<SpecGroupResponse> SpecGroups { get; set; } = new List<SpecGroupResponse>();
+    }
+
+    /// <summary>
+    /// SPU属性值
+    /// </summary>
+    public class SpuAttrValueResponse
+    {
+        public long AttrId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// 规格组
+    /// </summary>
+    public class SpecGroupResponse
+    {
+        public long AttrId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public List<string> Values { get; set; } = new List<string>();
     }
 }

@@ -5,6 +5,8 @@ using DShop.Contracts;
 using DShop.Contracts.Dto;
 using DShop.Infrastructure;
 using DShop.Models;
+using DShop.PluginShared;
+using Microsoft.Extensions.Configuration;
 
 namespace DShop.AdminPlugin.Services
 {
@@ -14,10 +16,12 @@ namespace DShop.AdminPlugin.Services
     public class ProductQueryService : IProductQueryService
     {
         private readonly DatabaseContext _context;
+        private readonly IConfiguration _configuration;
 
-        public ProductQueryService(DatabaseContext context)
+        public ProductQueryService(DatabaseContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public PagedResponse<SpuListResponse> GetSpuList(string? keyword, long? categoryId, int status, int pageIndex, int pageSize)
@@ -105,13 +109,59 @@ namespace DShop.AdminPlugin.Services
                     QrCode = s.QrCode
                 })
                 .ToList();
+            foreach (var sku in skus)
+            {
+                sku.ImageUrl = ReadImageAsBase64(sku.ImageUrl);
+                sku.AttrValues = _context.SkuAttrValues
+                    .Where(v => v.SkuId == sku.Id && !v.IsDeleted)
+                    .OrderBy(v => v.Id)
+                    .Select(v => new SpuAttrValueResponse
+                    {
+                        AttrId = v.AttrId,
+                        Name = v.Name,
+                        Value = v.Value
+                    })
+                    .ToList();
+            }
 
-            var images = _context.SpuImages
+            // SPU 属性值
+            var spuAttrValues = _context.SpuAttrValues
+                .Where(v => v.SpuId == id && !v.IsDeleted)
+                .OrderBy(v => v.Id)
+                .Select(v => new SpuAttrValueResponse
+                {
+                    AttrId = v.AttrId,
+                    Name = v.Name,
+                    Value = v.Value
+                })
+                .ToList();
+
+            // 规格组（从所有 SKU 的规格值反推）
+            var specGroups = new List<SpecGroupResponse>();
+            foreach (var sku in skus)
+            {
+                foreach (var attr in sku.AttrValues)
+                {
+                    var group = specGroups.FirstOrDefault(g => g.Name == attr.Name);
+                    if (group == null)
+                    {
+                        group = new SpecGroupResponse { AttrId = attr.AttrId, Name = attr.Name };
+                        specGroups.Add(group);
+                    }
+                    if (!group.Values.Contains(attr.Value))
+                    {
+                        group.Values.Add(attr.Value);
+                    }
+                }
+            }
+
+            var imagePaths = _context.SpuImages
                 .Where(i => i.SpuId == id && !i.IsDeleted)
                 .OrderBy(i => i.SortOrder)
                 .Select(i => i.ImageUrl)
                 .Where(u => u != null)
                 .ToList();
+            var images = imagePaths.Select(ReadImageAsBase64).Where(b => b != null).ToList();
 
             msg = "获取成功";
             return new SpuDetailResponse
@@ -125,7 +175,9 @@ namespace DShop.AdminPlugin.Services
                 Status = (int)spu.Status,
                 CreatedAt = spu.CreatedAt,
                 Skus = skus,
-                Images = images
+                Images = images,
+                SpuAttrValues = spuAttrValues,
+                SpecGroups = specGroups
             };
         }
 
@@ -187,6 +239,10 @@ namespace DShop.AdminPlugin.Services
                     SortOrder = b.SortOrder
                 })
                 .ToList();
+            foreach (var brand in items)
+            {
+                brand.Logo = ReadImageAsBase64(brand.Logo);
+            }
 
             return new PagedResponse<BrandResponse>
             {
@@ -195,6 +251,58 @@ namespace DShop.AdminPlugin.Services
                 PageIndex = pageIndex,
                 PageSize = pageSize
             };
+        }
+
+        public List<AttrResponse> GetAttrList(long? categoryId, int attrType)
+        {
+            var query = _context.Attrs.Where(a => !a.IsDeleted && a.Status == AttrStatus.Enable);
+
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                query = query.Where(a => a.CategoryId == categoryId.Value);
+            }
+            if (attrType >= 0)
+            {
+                var enumAttrType = (AttrType)attrType;
+                if (Enum.IsDefined(typeof(AttrType), enumAttrType))
+                {
+                    query = query.Where(a => a.AttrType == enumAttrType || a.AttrType == AttrType.Both);
+                }
+            }
+
+            return query
+                .OrderBy(a => a.Id)
+                .Select(a => new AttrResponse
+                {
+                    Id = a.Id,
+                    CategoryId = a.CategoryId,
+                    Name = a.Name,
+                    AttrType = (int)a.AttrType,
+                    ValueSelect = a.ValueSelect,
+                    Status = (int)a.Status
+                })
+                .ToList();
+        }
+
+        /// <summary>
+        /// 读取相对路径图片并转成Base64（用于返回给前端展示）
+        /// </summary>
+        private string? ReadImageAsBase64(string? relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                return null;
+            }
+            try
+            {
+                string basePath = _configuration[Constants.FileStorageBasePath] ?? "D:/Uploads/";
+                string fullDir = basePath + relativePath;
+                return ImageToBase64.GetBase64FromImage(fullDir);
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

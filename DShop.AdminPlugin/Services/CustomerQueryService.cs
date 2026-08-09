@@ -5,6 +5,8 @@ using DShop.Contracts;
 using DShop.Contracts.Dto;
 using DShop.Infrastructure;
 using DShop.Models;
+using DShop.PluginShared;
+using Microsoft.Extensions.Configuration;
 
 namespace DShop.AdminPlugin.Services
 {
@@ -14,10 +16,12 @@ namespace DShop.AdminPlugin.Services
     public class CustomerQueryService : ICustomerQueryService
     {
         private readonly DatabaseContext _context;
+        private readonly IConfiguration _configuration;
 
-        public CustomerQueryService(DatabaseContext context)
+        public CustomerQueryService(DatabaseContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public PagedResponse<CustomerListResponse> GetCustomerList(string? keyword, int pageIndex, int pageSize)
@@ -83,7 +87,7 @@ namespace DShop.AdminPlugin.Services
                 Idiograph = customer.Idiograph,
                 Coin = customer.Coin,
                 Gender = (int)customer.Gender,
-                Avatar = customer.Avatar,
+                Avatar = ReadImageAsBase64(customer.Avatar),
                 Address = customer.Address,
                 Status = (int)customer.Status,
                 CreatedAt = customer.CreatedAt,
@@ -202,6 +206,27 @@ namespace DShop.AdminPlugin.Services
                 PageIndex = pageIndex,
                 PageSize = pageSize
             };
+        }
+
+        /// <summary>
+        /// 读取相对路径图片并转成Base64（用于返回给前端展示）
+        /// </summary>
+        private string? ReadImageAsBase64(string? relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                return null;
+            }
+            try
+            {
+                string basePath = _configuration[Constants.FileStorageBasePath] ?? "D:/Uploads/";
+                string fullDir = basePath + relativePath;
+                return ImageToBase64.GetBase64FromImage(fullDir);
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

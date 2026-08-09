@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace DShop.Contracts.Dto
 {
     /// <summary>
@@ -18,5 +20,7 @@ namespace DShop.Contracts.Dto
         public string? BarCode { get; set; }
         /// <summary>二维码</summary>
         public string? QrCode { get; set; }
+        /// <summary>该SKU的规格值组合</summary>
+        public List<SpuAttrValueResponse> AttrValues { get; set; } = new List<SpuAttrValueResponse>();
     }
 }

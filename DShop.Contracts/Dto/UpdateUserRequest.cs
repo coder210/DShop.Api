@@ -3,7 +3,7 @@ namespace DShop.Contracts.Dto
     public class UpdateUserRequest
     {
         /// <summary>
-        /// 头像
+        /// 头像Base64数据
         /// </summary>
         public string AvatarData { get; set; }
         /// <summary>
